@@ -13,6 +13,18 @@ local UserInputService = game:GetService("UserInputService")
 
 local LocalPlayer = Players.LocalPlayer
 
+-- Obtener contenedor seguro para la UI (CoreGui con fallback a PlayerGui)
+local function GetSafeGuiParent()
+    local success, _ = pcall(function() return CoreGui.Name end)
+    if success then
+        return CoreGui
+    else
+        return LocalPlayer:WaitForChild("PlayerGui")
+    end
+end
+
+local GuiParent = GetSafeGuiParent()
+
 -- LISTA DE USUARIOS PREMIUM (EN MINÚSCULAS)
 local PremiumUsers = {
     ["carbius123"] = true,
@@ -105,29 +117,29 @@ local function EnablePotatoMode()
     end)
 end
 
--- ==================== SISTEMA DE PARTÍCULAS ====================
+-- ==================== SISTEMA DE PARTÍCULAS MEJORADO ====================
 local function SpawnParticle(parent)
     if not parent or not parent.Parent then return end
 
     local particle = Instance.new("ImageLabel")
-    particle.Name = "PxzdParticle"
-    particle.Size = UDim2.new(0, math.random(12, 24), 0, math.random(12, 24))
-    particle.Position = UDim2.new(math.random(), 0, 1, 0)
+    particle.Name = "PxzdGlowParticle"
+    particle.Size = UDim2.new(0, math.random(10, 20), 0, math.random(10, 20))
+    particle.Position = UDim2.new(math.random(), 0, 1.1, 0)
     particle.BackgroundTransparency = 1
     particle.Image = LOGO_ID
-    particle.ImageTransparency = math.random(3, 6) / 10
+    particle.ImageTransparency = math.random(2, 5) / 10
     particle.ZIndex = 15
     particle.Parent = parent
 
     Instance.new("UICorner", particle).CornerRadius = UDim.new(1, 0)
 
-    local endX = particle.Position.X.Scale + (math.random(-20, 20) / 100)
-    local tweenDuration = math.random(15, 25) / 10
+    local endX = particle.Position.X.Scale + (math.random(-15, 15) / 100)
+    local tweenDuration = math.random(20, 35) / 10
 
-    local tween = TweenService:Create(particle, TweenInfo.new(tweenDuration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-        Position = UDim2.new(endX, 0, -0.1, 0),
+    local tween = TweenService:Create(particle, TweenInfo.new(tweenDuration, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out), {
+        Position = UDim2.new(endX, 0, -0.2, 0),
         ImageTransparency = 1,
-        Rotation = math.random(-180, 180)
+        Rotation = math.random(-360, 360)
     })
 
     tween:Play()
@@ -136,9 +148,8 @@ local function SpawnParticle(parent)
     end)
 end
 
--- ==================== INTRO CINEMÁTICA Y ANIMADA ====================
+-- ==================== INTRO SUPER GOOD / ULTIMATE ====================
 local function PlayCustomIntro(onComplete)
-    -- Blur Background
     local oldBlur = Lighting:FindFirstChild("PxzdIntroBlur")
     if oldBlur then oldBlur:Destroy() end
 
@@ -147,18 +158,17 @@ local function PlayCustomIntro(onComplete)
     blurEffect.Size = 0
     blurEffect.Parent = Lighting
 
-    TweenService:Create(blurEffect, TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-        Size = 28
+    TweenService:Create(blurEffect, TweenInfo.new(0.8, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+        Size = 32
     }):Play()
 
-    -- Audio Player (Inicia en segundo 24 con volumen a 0.25)
     local oldSound = SoundService:FindFirstChild("PxzdIntroMusic")
     if oldSound then oldSound:Destroy() end
 
     local introSound = Instance.new("Sound")
     introSound.Name = "PxzdIntroMusic"
     introSound.SoundId = INTRO_AUDIO_ID
-    introSound.Volume = 0.25 -- Volumen ajustado a 0.25
+    introSound.Volume = 0.25
     introSound.Looped = false
     introSound.TimePosition = 24
     introSound.Parent = SoundService
@@ -170,33 +180,29 @@ local function PlayCustomIntro(onComplete)
         end)
     end)
 
-    -- GUI Base
-    if CoreGui:FindFirstChild("PxzdIntroGui") then CoreGui.PxzdIntroGui:Destroy() end
+    if GuiParent:FindFirstChild("PxzdIntroGui") then GuiParent.PxzdIntroGui:Destroy() end
 
     local IntroGui = Instance.new("ScreenGui")
     IntroGui.Name = "PxzdIntroGui"
     IntroGui.ResetOnSpawn = false
     IntroGui.IgnoreGuiInset = true
-    IntroGui.Parent = CoreGui
+    IntroGui.Parent = GuiParent
 
-    -- Background Overlay
     local Background = Instance.new("Frame")
     Background.Size = UDim2.new(1, 0, 1, 0)
-    Background.BackgroundColor3 = Color3.fromRGB(8, 5, 14)
-    Background.BackgroundTransparency = 0.25
+    Background.BackgroundColor3 = Color3.fromRGB(5, 3, 10)
+    Background.BackgroundTransparency = 0.15
     Background.Parent = IntroGui
 
-    -- Main Container
     local CenterFrame = Instance.new("Frame")
-    CenterFrame.Size = UDim2.new(0, 420, 0, 320)
-    CenterFrame.Position = UDim2.new(0.5, -210, 0.5, -160)
+    CenterFrame.Size = UDim2.new(0, 450, 0, 340)
+    CenterFrame.Position = UDim2.new(0.5, -225, 0.5, -170)
     CenterFrame.BackgroundTransparency = 1
     CenterFrame.Parent = IntroGui
 
-    -- Logo Frame
     local LogoHolder = Instance.new("Frame")
-    LogoHolder.Size = UDim2.new(0, 110, 0, 110)
-    LogoHolder.Position = UDim2.new(0.5, -55, 0.15, 0)
+    LogoHolder.Size = UDim2.new(0, 125, 0, 125)
+    LogoHolder.Position = UDim2.new(0.5, -62, 0.1, 0)
     LogoHolder.BackgroundTransparency = 1
     LogoHolder.Parent = CenterFrame
 
@@ -209,64 +215,65 @@ local function PlayCustomIntro(onComplete)
     Instance.new("UICorner", LogoImage).CornerRadius = UDim.new(1, 0)
 
     local LogoStroke = Instance.new("UIStroke")
-    LogoStroke.Color = Color3.fromRGB(0, 255, 128)
-    LogoStroke.Thickness = 3.5
+    LogoStroke.Color = Color3.fromRGB(0, 255, 150)
+    LogoStroke.Thickness = 4
     LogoStroke.Transparency = 1
     LogoStroke.Parent = LogoImage
 
-    -- Animación de Logo Entrada
-    LogoHolder.Size = UDim2.new(0, 20, 0, 20)
-    LogoHolder.Position = UDim2.new(0.5, -10, 0.25, 0)
+    LogoHolder.Size = UDim2.new(0, 10, 0, 10)
+    LogoHolder.Position = UDim2.new(0.5, -5, 0.2, 0)
 
-    TweenService:Create(LogoHolder, TweenInfo.new(0.8, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-        Size = UDim2.new(0, 110, 0, 110),
-        Position = UDim2.new(0.5, -55, 0.12, 0)
+    TweenService:Create(LogoHolder, TweenInfo.new(1.0, Enum.EasingStyle.Elastic, Enum.EasingDirection.Out), {
+        Size = UDim2.new(0, 125, 0, 125),
+        Position = UDim2.new(0.5, -62, 0.08, 0)
     }):Play()
-    TweenService:Create(LogoImage, TweenInfo.new(0.8), {ImageTransparency = 0}):Play()
-    TweenService:Create(LogoStroke, TweenInfo.new(0.8), {Transparency = 0}):Play()
+    TweenService:Create(LogoImage, TweenInfo.new(0.6), {ImageTransparency = 0}):Play()
+    TweenService:Create(LogoStroke, TweenInfo.new(0.6), {Transparency = 0}):Play()
 
-    -- Texto Principal "Chema in top"
     local TitleText = Instance.new("TextLabel")
-    TitleText.Size = UDim2.new(1, 0, 0, 45)
-    TitleText.Position = UDim2.new(0, 0, 0.52, 0)
+    TitleText.Size = UDim2.new(1, 0, 0, 50)
+    TitleText.Position = UDim2.new(0, 0, 0.50, 0)
     TitleText.BackgroundTransparency = 1
-    TitleText.Text = "👑 Chema in top 👑"
-    TitleText.TextColor3 = Color3.fromRGB(0, 255, 128)
+    TitleText.Text = "👑 CHEMA IN TOP 👑"
+    TitleText.TextColor3 = Color3.fromRGB(255, 255, 255)
     TitleText.Font = Enum.Font.GothamBlack
-    TitleText.TextSize = 28
+    TitleText.TextSize = 30
     TitleText.TextTransparency = 1
     TitleText.Parent = CenterFrame
 
     local TextStroke = Instance.new("UIStroke")
-    TextStroke.Thickness = 3
+    TextStroke.Thickness = 3.5
     TextStroke.Transparency = 1
     TextStroke.Parent = TitleText
 
-    TweenService:Create(TitleText, TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextTransparency = 0}):Play()
-    TweenService:Create(TextStroke, TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Transparency = 0}):Play()
+    TweenService:Create(TitleText, TweenInfo.new(0.7, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {TextTransparency = 0}):Play()
+    TweenService:Create(TextStroke, TweenInfo.new(0.7, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Transparency = 0}):Play()
 
-    -- Subtítulo PXZD HUB
     local Subtitle = Instance.new("TextLabel")
-    Subtitle.Size = UDim2.new(1, 0, 0, 20)
+    Subtitle.Size = UDim2.new(1, 0, 0, 22)
     Subtitle.Position = UDim2.new(0, 0, 0.67, 0)
     Subtitle.BackgroundTransparency = 1
-    Subtitle.Text = "PXZD HUB IN TOP ⚡ LOADING..."
-    Subtitle.TextColor3 = Color3.fromRGB(180, 180, 200)
+    Subtitle.Text = "PXZD HUB IN TOP ⚡ CARGANDO..."
+    Subtitle.TextColor3 = Color3.fromRGB(200, 200, 230)
     Subtitle.Font = Enum.Font.GothamBold
     Subtitle.TextSize = 13
     Subtitle.TextTransparency = 1
     Subtitle.Parent = CenterFrame
 
-    TweenService:Create(Subtitle, TweenInfo.new(0.6), {TextTransparency = 0}):Play()
+    TweenService:Create(Subtitle, TweenInfo.new(0.7), {TextTransparency = 0}):Play()
 
-    -- Barra de Carga
     local BarBackground = Instance.new("Frame")
-    BarBackground.Size = UDim2.new(0, 280, 0, 8)
-    BarBackground.Position = UDim2.new(0.5, -140, 0.82, 0)
-    BarBackground.BackgroundColor3 = Color3.fromRGB(25, 15, 38)
+    BarBackground.Size = UDim2.new(0, 300, 0, 10)
+    BarBackground.Position = UDim2.new(0.5, -150, 0.82, 0)
+    BarBackground.BackgroundColor3 = Color3.fromRGB(20, 12, 32)
     BarBackground.BorderSizePixel = 0
     BarBackground.Parent = CenterFrame
     Instance.new("UICorner", BarBackground).CornerRadius = UDim.new(1, 0)
+
+    local BarStroke = Instance.new("UIStroke")
+    BarStroke.Color = Color3.fromRGB(80, 40, 120)
+    BarStroke.Thickness = 1.5
+    BarStroke.Parent = BarBackground
 
     local BarFill = Instance.new("Frame")
     BarFill.Size = UDim2.new(0, 0, 1, 0)
@@ -277,18 +284,18 @@ local function PlayCustomIntro(onComplete)
 
     local FillGradient = Instance.new("UIGradient")
     FillGradient.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 255, 128)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(168, 45, 255))
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 255, 150)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(168, 45, 255)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 220, 255))
     })
     FillGradient.Parent = BarFill
 
-    -- Bucles de Animaciones y Partículas
     local running = true
 
     task.spawn(function()
         while running and CenterFrame and CenterFrame.Parent do
             SpawnParticle(Background)
-            task.wait(0.1)
+            task.wait(0.08)
         end
     end)
 
@@ -299,18 +306,17 @@ local function PlayCustomIntro(onComplete)
             local color = Color3.fromHSV(hue / 360, 0.85, 1)
             TextStroke.Color = color
             LogoStroke.Color = color
+            BarStroke.Color = color
             RunService.RenderStepped:Wait()
         end
     end)
 
-    -- Animación de Carga (Duración de 5 segundos)
-    TweenService:Create(BarFill, TweenInfo.new(5.0, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+    TweenService:Create(BarFill, TweenInfo.new(5.0, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
         Size = UDim2.new(1, 0, 1, 0)
     }):Play()
 
     task.wait(5.2)
 
-    -- Salida de Intro
     running = false
 
     TweenService:Create(TitleText, TweenInfo.new(0.5), {TextTransparency = 1}):Play()
@@ -341,8 +347,7 @@ PlayCustomIntro(function()
     local isPremium = PremiumUsers[string.lower(LocalPlayer.Name)]
 
     if isPremium then
-        -- BADGE SUPERIOR DE RANGO
-        if CoreGui:FindFirstChild("PxzdPremiumBadge") then CoreGui.PxzdPremiumBadge:Destroy() end
+        if GuiParent:FindFirstChild("PxzdPremiumBadge") then GuiParent.PxzdPremiumBadge:Destroy() end
 
         local isOwner = (string.lower(LocalPlayer.Name) == "carbius123")
         local badgeDuration = isOwner and 12 or 7
@@ -350,7 +355,7 @@ PlayCustomIntro(function()
         local BadgeGui = Instance.new("ScreenGui")
         BadgeGui.Name = "PxzdPremiumBadge"
         BadgeGui.ResetOnSpawn = false
-        BadgeGui.Parent = CoreGui
+        BadgeGui.Parent = GuiParent
 
         local BadgeFrame = Instance.new("Frame")
         BadgeFrame.Name = "BadgeFrame"
@@ -405,13 +410,12 @@ PlayCustomIntro(function()
             if BadgeGui and BadgeGui.Parent then BadgeGui:Destroy() end
         end)
 
-        -- MENU PRINCIPAL DEL HUB
-        if CoreGui:FindFirstChild("PxzdHubMenu") then CoreGui.PxzdHubMenu:Destroy() end
+        if GuiParent:FindFirstChild("PxzdHubMenu") then GuiParent.PxzdHubMenu:Destroy() end
 
         local MenuGui = Instance.new("ScreenGui")
         MenuGui.Name = "PxzdHubMenu"
         MenuGui.ResetOnSpawn = false
-        MenuGui.Parent = CoreGui
+        MenuGui.Parent = GuiParent
 
         local MainMenu = Instance.new("Frame")
         MainMenu.Name = "MainFrame"
@@ -429,7 +433,6 @@ PlayCustomIntro(function()
         MainStroke.Thickness = 2
         MainStroke.Parent = MainMenu
 
-        -- Hacer la ventana arrastrable
         local Header = Instance.new("Frame")
         Header.Size = UDim2.new(1, 0, 0, 45)
         Header.BackgroundTransparency = 1
@@ -465,13 +468,12 @@ PlayCustomIntro(function()
             MainMenu.Visible = false
         end)
 
-        -- BOTÓN FLOTANTE MÓVIL/PC
-        if CoreGui:FindFirstChild("PxzdToggleButton") then CoreGui.PxzdToggleButton:Destroy() end
+        if GuiParent:FindFirstChild("PxzdToggleButton") then GuiParent.PxzdToggleButton:Destroy() end
 
         local ToggleGui = Instance.new("ScreenGui")
         ToggleGui.Name = "PxzdToggleButton"
         ToggleGui.ResetOnSpawn = false
-        ToggleGui.Parent = CoreGui
+        ToggleGui.Parent = GuiParent
 
         local ToggleBtn = Instance.new("ImageButton")
         ToggleBtn.Name = "ToggleImageBtn"
@@ -505,7 +507,6 @@ PlayCustomIntro(function()
             MainMenu.Visible = not MainMenu.Visible
         end)
 
-        -- SCROLLING FRAME SCRIPTS
         local ScrollFrame = Instance.new("ScrollingFrame")
         ScrollFrame.Size = UDim2.new(1, -20, 1, -55)
         ScrollFrame.Position = UDim2.new(0, 10, 0, 48)
@@ -524,6 +525,4 @@ PlayCustomIntro(function()
         local function CreateScriptRow(name, scriptTarget)
             local Row = Instance.new("Frame")
             Row.Size = UDim2.new(1, -8, 0, 44)
-            Row.BackgroundColor3 = Color3.fromRGB(24, 16, 36)
-            Row.ZIndex = 2
-  
+            Row.BackgroundColor3 = Color3.fromRGB
