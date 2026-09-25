@@ -1,5 +1,5 @@
 -- ==============================================================================
---  PXZD HUB IN TOP | CORESCRIPT DEFINITIVO (BURBUJAS DE LOGO + BARRA GRADIENTE)
+--  PXZD HUB IN TOP | CORESCRIPT ULTIMATE (BURBUJAS + BARRA ROJA Y VERDE)
 -- ==============================================================================
 local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
@@ -91,7 +91,7 @@ local function EnablePotatoMode()
     end)
 end
 
--- ==================== INTRO CON BURBUJAS FLOTANTES DE LOGO ====================
+-- ==================== INTRO CON BURBUJAS Y BARRA ROJO/VERDE ====================
 local function PlayCustomIntro(onComplete)
     pcall(function()
         local oldBlur = Lighting:FindFirstChild("PxzdIntroBlur")
@@ -133,12 +133,11 @@ local function PlayCustomIntro(onComplete)
         Background.BackgroundTransparency = 0.2
         Background.Parent = IntroGui
 
-        -- Contenedor de burbujas flotantes
+        -- Contenedor de burbujas flotantes de logo
         local BubbleContainer = Instance.new("Folder")
         BubbleContainer.Name = "BubbleContainer"
         BubbleContainer.Parent = IntroGui
 
-        -- Sistema de generación de burbujas con logo flotando sin trabarse
         local activeBubbles = true
         task.spawn(function()
             math.randomseed(tick())
@@ -208,7 +207,7 @@ local function PlayCustomIntro(onComplete)
         TextStroke.Color = Color3.fromRGB(168, 45, 255)
         TextStroke.Parent = TitleText
 
-        -- Barra de Carga con Fondo Oscuro
+        -- Barra de Carga Fondo
         local BarBG = Instance.new("Frame")
         BarBG.Size = UDim2.new(0, 240, 0, 8)
         BarBG.Position = UDim2.new(0.5, -120, 0.72, 0)
@@ -216,19 +215,19 @@ local function PlayCustomIntro(onComplete)
         BarBG.Parent = CenterFrame
         Instance.new("UICorner", BarBG).CornerRadius = UDim.new(1, 0)
 
-        -- Barra de Progreso Relleno
+        -- Barra de Relleno
         local BarFill = Instance.new("Frame")
         BarFill.Size = UDim2.new(0, 0, 1, 0)
         BarFill.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
         BarFill.Parent = BarBG
         Instance.new("UICorner", BarFill).CornerRadius = UDim.new(1, 0)
 
-        -- Gradiente Metálico Verde y Morado para la Barra
+        -- Gradiente Metálico Rojo y Verde
         local BarGradient = Instance.new("UIGradient")
         BarGradient.Color = ColorSequence.new({
-            ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 255, 128)),
-            ColorSequenceKeypoint.new(0.5, Color3.fromRGB(120, 255, 200)),
-            ColorSequenceKeypoint.new(1, Color3.fromRGB(168, 45, 255))
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 40, 40)),     -- Rojo metálico encendido
+            ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 150, 150)), -- Brillo central metálico
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 255, 128))      -- Verde brillante
         })
         BarGradient.Parent = BarFill
 
@@ -492,4 +491,6 @@ PlayCustomIntro(function()
         CreateScriptRow("Server Premium 🤑", "https://raw.githubusercontent.com/raw-roblox/PrivateServerBypass/refs/heads/main/lua")
         CreateScriptRow("Chilli Hub", "https://raw.githubusercontent.com/tienkhanh1/spicy/main/Chilli.lua")
 
-        ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, UIList.AbsoluteContentSize
+        ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, UIList.AbsoluteContentSize.Y + 15)
+    end)
+end)
