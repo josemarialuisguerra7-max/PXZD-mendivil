@@ -11,15 +11,16 @@ local RunService = game:GetService("RunService")
 
 local LocalPlayer = Players.LocalPlayer
 
--- LISTA DE USUARIOS PREMIUM (EN MINÚSCULAS PARA EVITAR ERRORES)
+-- LISTA DE USUARIOS PREMIUM (EN MINÚSCULAS)
 local PremiumUsers = {
     ["carbius123"] = true,
     ["bacon_pro8879"] = true,
     ["g_07n1"] = true,
-    ["zzzzzer11"] = true
+    ["zzzzzer11"] = true,
+    ["elalfa_3677"] = true
 }
 
--- VERIFICAR USUARIO (Ignora mayúsculas/minúsculas)
+-- VERIFICAR USUARIO
 local isPremium = PremiumUsers[string.lower(LocalPlayer.Name)]
 
 if isPremium then
@@ -129,7 +130,6 @@ if isPremium then
         MenuGui:Destroy()
     end)
 
-    -- Contenedor con Scroll para los botones
     local ScrollFrame = Instance.new("ScrollingFrame")
     ScrollFrame.Size = UDim2.new(1, -20, 1, -55)
     ScrollFrame.Position = UDim2.new(0, 10, 0, 45)
@@ -144,7 +144,6 @@ if isPremium then
     UIList.SortOrder = Enum.SortOrder.LayoutOrder
     UIList.Parent = ScrollFrame
 
-    -- Función para crear botones con diseño Verde y Morado
     local function CreateScriptRow(name, scriptUrl)
         local Row = Instance.new("Frame")
         Row.Size = UDim2.new(1, -10, 0, 45)
@@ -196,7 +195,6 @@ if isPremium then
         end)
     end
 
-    -- CREACIÓN DE LOS SCRIPTS SOLICITADOS
     CreateScriptRow("Afk Lennon Premium", "https://raw.githubusercontent.com/lennonxscripts/lennonfarm/refs/heads/main/farmv1.lua")
     CreateScriptRow("Miranda Farm", "https://api.luarmor.net/files/v4/loaders/6b07a458832f08b2314f706f14723212.lua")
     CreateScriptRow("Server Premium 🤑", "https://raw.githubusercontent.com/raw-roblox/PrivateServerBypass/refs/heads/main/lua")
@@ -215,7 +213,7 @@ if isPremium then
 else
 
     -- ==============================================================================
-    --  PANTALLA DE MANTENIMIENTO / ACCESO RESTRINGIDO (PARA NO PREMIUMS)
+    --  PANTALLA DE MANTENIMIENTO CON TEMPORIZADORES PERSONALIZADOS (NO PREMIUM)
     -- ==============================================================================
     local LOGO_ID = "rbxassetid://108485396062507"
     local AUDIO_ID = "rbxassetid://128999238382127"
@@ -231,6 +229,7 @@ else
 
     local bgMusic
 
+    -- REPRODUCCIÓN Y CONTROL DE MÚSICA (Dura 12 segundos)
     task.spawn(function()
         pcall(function()
             local oldSound = SoundService:FindFirstChild("PxzdUpdateMusic")
@@ -240,12 +239,21 @@ else
             bgMusic.Name = "PxzdUpdateMusic"
             bgMusic.SoundId = AUDIO_ID
             bgMusic.Volume = 0.25
-            bgMusic.Looped = true
+            bgMusic.Looped = false
             bgMusic.TimePosition = 0
             bgMusic.Parent = SoundService
 
             ContentProvider:PreloadAsync({bgMusic})
             bgMusic:Play()
+
+            -- Espera a que pasen 10 segundos para desvanecer en los últimos 2 segundos (total 12s)
+            task.wait(10)
+            if bgMusic and bgMusic.IsPlaying then
+                TweenService:Create(bgMusic, TweenInfo.new(2, Enum.EasingStyle.Linear), {Volume = 0}):Play()
+                task.wait(2)
+                bgMusic:Stop()
+                bgMusic:Destroy()
+            end
         end)
     end)
 
@@ -320,17 +328,28 @@ else
     CloseBtn.Parent = MainFrame
     Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 6)
 
-    local closing = false
-    CloseBtn.MouseButton1Click:Connect(function()
-        if closing then return end
-        closing = true
-        if bgMusic then
-            TweenService:Create(bgMusic, TweenInfo.new(1.2, Enum.EasingStyle.Linear), {Volume = 0}):Play()
-            TweenService:Create(MainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Size = UDim2.new(0, 0, 0, 0), Position = UDim2.new(0.5, 0, 0.5, 0)}):Play()
-            task.wait(1.2)
-            bgMusic:Stop()
-            bgMusic:Destroy()
+    -- DESVANECIMIENTO AUTOMÁTICO DE LA PORTADA A LOS 6 SEGUNDOS
+    task.spawn(function()
+        task.wait(4.5) -- Espera inicial antes de empezar a desaparecer
+        if MainFrame and MainFrame.Parent then
+            TweenService:Create(MainFrame, TweenInfo.new(1.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                BackgroundTransparency = 1,
+                Size = UDim2.new(0, 0, 0, 0),
+                Position = UDim2.new(0.5, 0, 0.5, 0)
+            }):Play()
+            TweenService:Create(UIStroke, TweenInfo.new(1.5, Enum.EasingStyle.Quad), {Transparency = 1}):Play()
+            TweenService:Create(LogoImage, TweenInfo.new(1.5, Enum.EasingStyle.Quad), {ImageTransparency = 1}):Play()
+            TweenService:Create(Title, TweenInfo.new(1.5, Enum.EasingStyle.Quad), {TextTransparency = 1}):Play()
+            TweenService:Create(TitleLabel, TweenInfo.new(1.5, Enum.EasingStyle.Quad), {TextTransparency = 1}):Play()
+            TweenService:Create(Description, TweenInfo.new(1.5, Enum.EasingStyle.Quad), {TextTransparency = 1}):Play()
+            TweenService:Create(CloseBtn, TweenInfo.new(1.5, Enum.EasingStyle.Quad), {BackgroundTransparency = 1, TextTransparency = 1}):Play()
+            
+            task.wait(1.5) -- Se completan exactamente los 6 segundos
+            ScreenGui:Destroy()
         end
+    end)
+
+    CloseBtn.MouseButton1Click:Connect(function()
         ScreenGui:Destroy()
     end)
 end
