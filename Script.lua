@@ -1,5 +1,5 @@
 -- ==============================================================================
---  PXZD HUB IN TOP | FUNNY & SIMPLE MEME INTRO
+--  PXZD HUB IN TOP | FUNNY & SIMPLE MEME INTRO (VERSION COMPLETA)
 -- ==============================================================================
 local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
@@ -35,8 +35,7 @@ local PremiumUsers = {
 }
 
 local LOGO_ID = "rbxassetid://108485396062507"
--- Audio gracioso / meme (Efecto de corneta/payaso o desastre)
-local FUNNY_AUDIO_ID = "rbxassetid://9069609268" 
+local FUNNY_AUDIO_ID = "rbxassetid://9069609268" -- Efecto gracioso de corneta / meme
 
 -- ==================== FUNCIÓN HACER MARCO ARRASTRABLE ====================
 local function MakeDraggable(frame, handle)
@@ -120,7 +119,6 @@ end
 
 -- ==================== INTRO SENCILLA Y CHISTOSA ====================
 local function PlayCustomIntro(onComplete)
-    -- Sonidito chistoso
     local funnySound = Instance.new("Sound")
     funnySound.Name = "PxzdMemeSound"
     funnySound.SoundId = FUNNY_AUDIO_ID
@@ -160,13 +158,13 @@ local function PlayCustomIntro(onComplete)
     LogoImage.Parent = CenterFrame
     Instance.new("UICorner", LogoImage).CornerRadius = UDim.new(1, 0)
 
-    -- Animación de rebote loco
+    -- Animación de rebote
     LogoImage.Rotation = -20
     TweenService:Create(LogoImage, TweenInfo.new(0.5, Enum.EasingStyle.Bounce, Enum.EasingDirection.Out), {
         Rotation = 20
     }):Play()
 
-    -- Texto 1
+    -- Texto Principal
     local TitleText = Instance.new("TextLabel")
     TitleText.Size = UDim2.new(1, 0, 0, 45)
     TitleText.Position = UDim2.new(0, 0, 0.5, 0)
@@ -193,7 +191,7 @@ local function PlayCustomIntro(onComplete)
     Subtext.TextSize = 16
     Subtext.Parent = CenterFrame
 
-    -- Efecto de parpadeo rápido y gracioso
+    -- Efecto de parpadeo rápido
     task.spawn(function()
         for i = 1, 12 do
             TitleText.TextColor3 = (i % 2 == 0) and Color3.fromRGB(255, 230, 0) or Color3.fromRGB(0, 255, 255)
@@ -204,7 +202,7 @@ local function PlayCustomIntro(onComplete)
 
     task.wait(2.2)
 
-    -- Desaparición rápida
+    -- Desaparición
     TweenService:Create(Background, TweenInfo.new(0.3), {BackgroundTransparency = 1}):Play()
     TweenService:Create(TitleText, TweenInfo.new(0.3), {TextTransparency = 1}):Play()
     TweenService:Create(Subtext, TweenInfo.new(0.3), {TextTransparency = 1}):Play()
@@ -515,4 +513,6 @@ PlayCustomIntro(function()
         Description.Parent = MainFrame
 
         task.wait(4)
-        Screen
+        ScreenGui:Destroy()
+    end
+end)
