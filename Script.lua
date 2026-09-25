@@ -1,81 +1,73 @@
 -- ==============================================================================
---  PXZD HUB IN TOP | FUNNY & SIMPLE MEME INTRO (VERSION COMPLETA)
+--  PXZD HUB IN TOP | CORESCRIPT DEFINITIVO (BURBUJAS DE LOGO + BARRA GRADIENTE)
 -- ==============================================================================
 local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
 local TweenService = game:GetService("TweenService")
 local SoundService = game:GetService("SoundService")
-local ContentProvider = game:GetService("ContentProvider")
-local StarterGui = game:GetService("StarterGui")
 local RunService = game:GetService("RunService")
-local Lighting = game:GetService("Lighting")
 local UserInputService = game:GetService("UserInputService")
+local Lighting = game:GetService("Lighting")
 
 local LocalPlayer = Players.LocalPlayer
+if not LocalPlayer then return end
 
--- Obtener contenedor seguro para la UI
 local function GetSafeGuiParent()
-    local success, _ = pcall(function() return CoreGui.Name end)
-    if success then
-        return CoreGui
+    local success, parent = pcall(function() return CoreGui end)
+    if success and parent then
+        return parent
     else
-        return LocalPlayer:WaitForChild("PlayerGui")
+        return LocalPlayer:WaitForChild("PlayerGui", 5)
     end
 end
 
 local GuiParent = GetSafeGuiParent()
-
--- LISTA DE USUARIOS PREMIUM (EN MINÚSCULAS)
-local PremiumUsers = {
-    ["carbius123"] = true,
-    ["bacon_pro8879"] = true,
-    ["g_07n1"] = true,
-    ["zzzzzer11"] = true,
-    ["elalfa_3677"] = true
-}
+if not GuiParent then return end
 
 local LOGO_ID = "rbxassetid://108485396062507"
-local FUNNY_AUDIO_ID = "rbxassetid://9069609268" -- Efecto gracioso de corneta / meme
+local INTRO_AUDIO_ID = "rbxassetid://108721795687965"
 
--- ==================== FUNCIÓN HACER MARCO ARRASTRABLE ====================
+-- ==================== FUNCIÓN DRAGGABLE ====================
 local function MakeDraggable(frame, handle)
-    handle = handle or frame
-    local dragging, dragInput, dragStart, startPos
+    pcall(function()
+        handle = handle or frame
+        local dragging, dragInput, dragStart, startPos
 
-    handle.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            dragStart = input.Position
-            startPos = frame.Position
+        handle.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                dragging = true
+                dragStart = input.Position
+                startPos = frame.Position
 
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
-                end
-            end)
-        end
-    end)
+                input.Changed:Connect(function()
+                    if input.UserInputState == Enum.UserInputState.End then
+                        dragging = false
+                    end
+                end)
+            end
+        end)
 
-    handle.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-            dragInput = input
-        end
-    end)
+        handle.InputChanged:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+                dragInput = input
+            end
+        end)
 
-    UserInputService.InputChanged:Connect(function(input)
-        if input == dragInput and dragging then
-            local delta = input.Position - dragStart
-            frame.Position = UDim2.new(
-                startPos.X.Scale,
-                startPos.X.Offset + delta.X,
-                startPos.Y.Scale,
-                startPos.Y.Offset + delta.Y
-            )
-        end
+        UserInputService.InputChanged:Connect(function(input)
+            if input == dragInput and dragging then
+                local delta = input.Position - dragStart
+                frame.Position = UDim2.new(
+                    startPos.X.Scale,
+                    startPos.X.Offset + delta.X,
+                    startPos.Y.Scale,
+                    startPos.Y.Offset + delta.Y
+                )
+            end
+        end)
     end)
 end
 
--- ==================== MODO PAPA / OPTIMIZACIÓN ====================
+-- ==================== MODO PAPÁ ====================
 local function EnablePotatoMode()
     pcall(function()
         for _, v in ipairs(workspace:GetDescendants()) do
@@ -89,24 +81,6 @@ local function EnablePotatoMode()
                 v.Enabled = false
             end
         end
-
-        local function HideCharacter(char)
-            if char and char ~= LocalPlayer.Character then
-                for _, part in ipairs(char:GetDescendants()) do
-                    if part:IsA("BasePart") then
-                        part.LocalTransparencyModifier = 1
-                    end
-                end
-            end
-        end
-
-        for _, player in ipairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer then
-                if player.Character then HideCharacter(player.Character) end
-                player.CharacterAdded:Connect(HideCharacter)
-            end
-        end
-
         Lighting.GlobalShadows = false
         Lighting.FogEnd = 9e9
         for _, effect in ipairs(Lighting:GetChildren()) do
@@ -117,173 +91,211 @@ local function EnablePotatoMode()
     end)
 end
 
--- ==================== INTRO SENCILLA Y CHISTOSA ====================
+-- ==================== INTRO CON BURBUJAS FLOTANTES DE LOGO ====================
 local function PlayCustomIntro(onComplete)
-    local funnySound = Instance.new("Sound")
-    funnySound.Name = "PxzdMemeSound"
-    funnySound.SoundId = FUNNY_AUDIO_ID
-    funnySound.Volume = 0.8
-    funnySound.Parent = SoundService
+    pcall(function()
+        local oldBlur = Lighting:FindFirstChild("PxzdIntroBlur")
+        if oldBlur then oldBlur:Destroy() end
 
-    pcall(function() funnySound:Play() end)
+        local blurEffect = Instance.new("BlurEffect")
+        blurEffect.Name = "PxzdIntroBlur"
+        blurEffect.Size = 20
+        blurEffect.Parent = Lighting
 
-    if GuiParent:FindFirstChild("PxzdFunnyIntroGui") then GuiParent.PxzdFunnyIntroGui:Destroy() end
+        local oldSound = SoundService:FindFirstChild("PxzdIntroMusic")
+        if oldSound then oldSound:Destroy() end
 
-    local IntroGui = Instance.new("ScreenGui")
-    IntroGui.Name = "PxzdFunnyIntroGui"
-    IntroGui.ResetOnSpawn = false
-    IntroGui.IgnoreGuiInset = true
-    IntroGui.Parent = GuiParent
-
-    -- Fondo morado chillon / meme
-    local Background = Instance.new("Frame")
-    Background.Size = UDim2.new(1, 0, 1, 0)
-    Background.BackgroundColor3 = Color3.fromRGB(18, 10, 30)
-    Background.BackgroundTransparency = 0.1
-    Background.Parent = IntroGui
-
-    -- Frame Centrado
-    local CenterFrame = Instance.new("Frame")
-    CenterFrame.Size = UDim2.new(0, 380, 0, 240)
-    CenterFrame.Position = UDim2.new(0.5, -190, 0.5, -120)
-    CenterFrame.BackgroundTransparency = 1
-    CenterFrame.Parent = IntroGui
-
-    -- Logo rebotando
-    local LogoImage = Instance.new("ImageLabel")
-    LogoImage.Size = UDim2.new(0, 100, 0, 100)
-    LogoImage.Position = UDim2.new(0.5, -50, 0.05, 0)
-    LogoImage.BackgroundTransparency = 1
-    LogoImage.Image = LOGO_ID
-    LogoImage.Parent = CenterFrame
-    Instance.new("UICorner", LogoImage).CornerRadius = UDim.new(1, 0)
-
-    -- Animación de rebote
-    LogoImage.Rotation = -20
-    TweenService:Create(LogoImage, TweenInfo.new(0.5, Enum.EasingStyle.Bounce, Enum.EasingDirection.Out), {
-        Rotation = 20
-    }):Play()
-
-    -- Texto Principal
-    local TitleText = Instance.new("TextLabel")
-    TitleText.Size = UDim2.new(1, 0, 0, 45)
-    TitleText.Position = UDim2.new(0, 0, 0.5, 0)
-    TitleText.BackgroundTransparency = 1
-    TitleText.Text = "👑 CHEMA IN TOP 👑"
-    TitleText.TextColor3 = Color3.fromRGB(255, 230, 0)
-    TitleText.Font = Enum.Font.FredokaOne
-    TitleText.TextSize = 28
-    TitleText.Parent = CenterFrame
-
-    local Stroke = Instance.new("UIStroke")
-    Stroke.Color = Color3.fromRGB(255, 0, 100)
-    Stroke.Thickness = 3
-    Stroke.Parent = TitleText
-
-    -- Texto Subtítulo gracioso
-    local Subtext = Instance.new("TextLabel")
-    Subtext.Size = UDim2.new(1, 0, 0, 25)
-    Subtext.Position = UDim2.new(0, 0, 0.72, 0)
-    Subtext.BackgroundTransparency = 1
-    Subtext.Text = "🚨 CUIDADO: Script demasiado insano 🚨"
-    Subtext.TextColor3 = Color3.fromRGB(0, 255, 180)
-    Subtext.Font = Enum.Font.SourceSansBold
-    Subtext.TextSize = 16
-    Subtext.Parent = CenterFrame
-
-    -- Efecto de parpadeo rápido
-    task.spawn(function()
-        for i = 1, 12 do
-            TitleText.TextColor3 = (i % 2 == 0) and Color3.fromRGB(255, 230, 0) or Color3.fromRGB(0, 255, 255)
-            LogoImage.Rotation = (i % 2 == 0) and -15 or 15
-            task.wait(0.12)
-        end
-    end)
-
-    task.wait(2.2)
-
-    -- Desaparición
-    TweenService:Create(Background, TweenInfo.new(0.3), {BackgroundTransparency = 1}):Play()
-    TweenService:Create(TitleText, TweenInfo.new(0.3), {TextTransparency = 1}):Play()
-    TweenService:Create(Subtext, TweenInfo.new(0.3), {TextTransparency = 1}):Play()
-    TweenService:Create(LogoImage, TweenInfo.new(0.3), {ImageTransparency = 1}):Play()
-
-    task.wait(0.3)
-
-    if funnySound then funnySound:Destroy() end
-    if IntroGui then IntroGui:Destroy() end
-
-    if onComplete then onComplete() end
-end
-
--- ==================== INICIO DEL SCRIPT ====================
-PlayCustomIntro(function()
-    local isPremium = PremiumUsers[string.lower(LocalPlayer.Name)]
-
-    if isPremium then
-        if GuiParent:FindFirstChild("PxzdPremiumBadge") then GuiParent.PxzdPremiumBadge:Destroy() end
-
-        local isOwner = (string.lower(LocalPlayer.Name) == "carbius123")
-        local badgeDuration = isOwner and 12 or 7
-
-        local BadgeGui = Instance.new("ScreenGui")
-        BadgeGui.Name = "PxzdPremiumBadge"
-        BadgeGui.ResetOnSpawn = false
-        BadgeGui.Parent = GuiParent
-
-        local BadgeFrame = Instance.new("Frame")
-        BadgeFrame.Name = "BadgeFrame"
-        BadgeFrame.Size = UDim2.new(0, 190, 0, 36)
-        BadgeFrame.Position = UDim2.new(0.5, -95, 0, 12)
-        BadgeFrame.BackgroundColor3 = Color3.fromRGB(15, 10, 24)
-        BadgeFrame.BorderSizePixel = 0
-        BadgeFrame.Parent = BadgeGui
-
-        Instance.new("UICorner", BadgeFrame).CornerRadius = UDim.new(0, 10)
-
-        local Stroke = Instance.new("UIStroke")
-        Stroke.Thickness = 2
-        Stroke.Parent = BadgeFrame
-
-        local CrownLabel = Instance.new("TextLabel")
-        CrownLabel.Size = UDim2.new(0, 32, 1, 0)
-        CrownLabel.Position = UDim2.new(0, 6, 0, 0)
-        CrownLabel.BackgroundTransparency = 1
-        CrownLabel.Text = "👑"
-        CrownLabel.TextSize = 18
-        CrownLabel.Parent = BadgeFrame
-
-        local PremiumText = Instance.new("TextLabel")
-        PremiumText.Size = UDim2.new(1, -42, 1, 0)
-        PremiumText.Position = UDim2.new(0, 38, 0, 0)
-        PremiumText.BackgroundTransparency = 1
-        PremiumText.Text = isOwner and "OWNER GG" or "VIP MEMBER"
-        PremiumText.Font = Enum.Font.GothamBlack
-        PremiumText.TextSize = 12
-        PremiumText.TextXAlignment = Enum.TextXAlignment.Left
-        PremiumText.Parent = BadgeFrame
-
+        local introSound = Instance.new("Sound")
+        introSound.Name = "PxzdIntroMusic"
+        introSound.SoundId = INTRO_AUDIO_ID
+        introSound.Volume = 0
+        introSound.TimePosition = 24
+        introSound.Parent = SoundService
+        
         task.spawn(function()
-            local t = 0
-            local startTime = tick()
-            while BadgeGui and BadgeGui.Parent and (tick() - startTime < badgeDuration) do
-                t = t + 0.05
-                if isOwner then
-                    local rainbow = Color3.fromHSV((t * 25) % 360 / 360, 0.85, 1)
-                    PremiumText.TextColor3 = rainbow
-                    Stroke.Color = rainbow
-                else
-                    local green = Color3.fromRGB(0, 255, 128)
-                    local purple = Color3.fromRGB(168, 45, 255)
-                    local mix = green:Lerp(purple, (math.sin(t * 3) + 1) / 2)
-                    PremiumText.TextColor3 = mix
-                    Stroke.Color = mix
-                end
-                RunService.RenderStepped:Wait()
-            end
-            if BadgeGui and BadgeGui.Parent then BadgeGui:Destroy() end
+            pcall(function() 
+                introSound:Play() 
+                TweenService:Create(introSound, TweenInfo.new(2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Volume = 0.25}):Play()
+            end)
         end)
 
+        if GuiParent:FindFirstChild("PxzdIntroGui") then GuiParent.PxzdIntroGui:Destroy() end
+
+        local IntroGui = Instance.new("ScreenGui")
+        IntroGui.Name = "PxzdIntroGui"
+        IntroGui.ResetOnSpawn = false
+        IntroGui.IgnoreGuiInset = true
+        IntroGui.Parent = GuiParent
+
+        local Background = Instance.new("Frame")
+        Background.Size = UDim2.new(1, 0, 1, 0)
+        Background.BackgroundColor3 = Color3.fromRGB(8, 4, 14)
+        Background.BackgroundTransparency = 0.2
+        Background.Parent = IntroGui
+
+        -- Contenedor de burbujas flotantes
+        local BubbleContainer = Instance.new("Folder")
+        BubbleContainer.Name = "BubbleContainer"
+        BubbleContainer.Parent = IntroGui
+
+        -- Sistema de generación de burbujas con logo flotando sin trabarse
+        local activeBubbles = true
+        task.spawn(function()
+            math.randomseed(tick())
+            while activeBubbles and IntroGui and IntroGui.Parent do
+                task.spawn(function()
+                    if not activeBubbles then return end
+                    local bubble = Instance.new("ImageLabel")
+                    local size = math.random(25, 55)
+                    bubble.Size = UDim2.new(0, size, 0, size)
+                    bubble.Position = UDim2.new(math.random(5, 95) / 100, 0, 1.1, 0)
+                    bubble.BackgroundTransparency = 1
+                    bubble.Image = LOGO_ID
+                    bubble.ImageTransparency = math.random(40, 70) / 100
+                    bubble.Parent = BubbleContainer
+
+                    Instance.new("UICorner", bubble).CornerRadius = UDim.new(1, 0)
+
+                    local targetY = -0.2
+                    local duration = math.random(35, 60) / 10
+                    local wobbleOffset = math.random(-40, 40)
+
+                    local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
+                    local tween = TweenService:Create(bubble, tweenInfo, {
+                        Position = UDim2.new(bubble.Position.X.Scale, wobbleOffset, targetY, 0),
+                        ImageTransparency = 1
+                    })
+                    tween:Play()
+
+                    tween.Completed:Connect(function()
+                        bubble:Destroy()
+                    end)
+                end)
+                task.wait(0.25)
+            end
+        end)
+
+        local CenterFrame = Instance.new("Frame")
+        CenterFrame.Size = UDim2.new(0, 400, 0, 260)
+        CenterFrame.Position = UDim2.new(0.5, -200, 0.5, -130)
+        CenterFrame.BackgroundTransparency = 1
+        CenterFrame.Parent = IntroGui
+
+        local LogoImage = Instance.new("ImageLabel")
+        LogoImage.Size = UDim2.new(0, 100, 0, 100)
+        LogoImage.Position = UDim2.new(0.5, -50, 0, 0)
+        LogoImage.BackgroundTransparency = 1
+        LogoImage.Image = LOGO_ID
+        LogoImage.Parent = CenterFrame
+        Instance.new("UICorner", LogoImage).CornerRadius = UDim.new(1, 0)
+
+        local LogoStroke = Instance.new("UIStroke")
+        LogoStroke.Thickness = 3
+        LogoStroke.Color = Color3.fromRGB(0, 255, 128)
+        LogoStroke.Parent = LogoImage
+
+        local TitleText = Instance.new("TextLabel")
+        TitleText.Size = UDim2.new(1, 0, 0, 50)
+        TitleText.Position = UDim2.new(0, 0, 0.42, 0)
+        TitleText.BackgroundTransparency = 1
+        TitleText.Text = "👑 Chema in top 👑"
+        TitleText.Font = Enum.Font.FredokaOne
+        TitleText.TextSize = 32
+        TitleText.Parent = CenterFrame
+
+        local TextStroke = Instance.new("UIStroke")
+        TextStroke.Thickness = 3
+        TextStroke.Color = Color3.fromRGB(168, 45, 255)
+        TextStroke.Parent = TitleText
+
+        -- Barra de Carga con Fondo Oscuro
+        local BarBG = Instance.new("Frame")
+        BarBG.Size = UDim2.new(0, 240, 0, 8)
+        BarBG.Position = UDim2.new(0.5, -120, 0.72, 0)
+        BarBG.BackgroundColor3 = Color3.fromRGB(20, 15, 30)
+        BarBG.Parent = CenterFrame
+        Instance.new("UICorner", BarBG).CornerRadius = UDim.new(1, 0)
+
+        -- Barra de Progreso Relleno
+        local BarFill = Instance.new("Frame")
+        BarFill.Size = UDim2.new(0, 0, 1, 0)
+        BarFill.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        BarFill.Parent = BarBG
+        Instance.new("UICorner", BarFill).CornerRadius = UDim.new(1, 0)
+
+        -- Gradiente Metálico Verde y Morado para la Barra
+        local BarGradient = Instance.new("UIGradient")
+        BarGradient.Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 255, 128)),
+            ColorSequenceKeypoint.new(0.5, Color3.fromRGB(120, 255, 200)),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(168, 45, 255))
+        })
+        BarGradient.Parent = BarFill
+
+        local LoadingStatus = Instance.new("TextLabel")
+        LoadingStatus.Size = UDim2.new(1, 0, 0, 30)
+        LoadingStatus.Position = UDim2.new(0, 0, 0.82, 0)
+        LoadingStatus.BackgroundTransparency = 1
+        LoadingStatus.Text = "Cargando."
+        LoadingStatus.TextColor3 = Color3.fromRGB(200, 200, 215)
+        LoadingStatus.Font = Enum.Font.GothamBold
+        LoadingStatus.TextSize = 14
+        LoadingStatus.Parent = CenterFrame
+
+        TweenService:Create(BarFill, TweenInfo.new(7, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            Size = UDim2.new(1, 0, 1, 0)
+        }):Play()
+
+        local textAnimRoutine = task.spawn(function()
+            local states = {"Cargando.", "Cargando..", "Cargando..."}
+            local i = 1
+            while IntroGui and IntroGui.Parent do
+                LoadingStatus.Text = states[i]
+                i = (i % #states) + 1
+                task.wait(0.4)
+            end
+        end)
+
+        local rainbowRoutine = task.spawn(function()
+            local hue = 0
+            while IntroGui and IntroGui.Parent do
+                hue = (hue + 3) % 360
+                local col = Color3.fromHSV(hue / 360, 0.95, 1)
+                local colStroke = Color3.fromHSV(((hue + 180) % 360) / 360, 1, 1)
+                TitleText.TextColor3 = col
+                TextStroke.Color = colStroke
+                LogoStroke.Color = col
+                RunService.RenderStepped:Wait()
+            end
+        end)
+
+        task.wait(7.5)
+
+        activeBubbles = false
+        pcall(function()
+            task.cancel(rainbowRoutine)
+            task.cancel(textAnimRoutine)
+        end)
+
+        if IntroGui then IntroGui:Destroy() end
+        if blurEffect then blurEffect:Destroy() end
+
+        if onComplete then onComplete() end
+
+        task.spawn(function()
+            if introSound and introSound.IsPlaying then
+                TweenService:Create(introSound, TweenInfo.new(1.5), {Volume = 0}):Play()
+                task.wait(1.5)
+                introSound:Stop()
+                introSound:Destroy()
+            end
+        end)
+    end)
+end
+
+-- ==================== CONSTRUCCIÓN DEL MENÚ PRINCIPAL ====================
+PlayCustomIntro(function()
+    pcall(function()
         if GuiParent:FindFirstChild("PxzdHubMenu") then GuiParent.PxzdHubMenu:Destroy() end
 
         local MenuGui = Instance.new("ScreenGui")
@@ -307,23 +319,54 @@ PlayCustomIntro(function()
         MainStroke.Thickness = 2
         MainStroke.Parent = MainMenu
 
+        local BackgroundWatermark = Instance.new("ImageLabel")
+        BackgroundWatermark.Size = UDim2.new(0, 220, 0, 220)
+        BackgroundWatermark.Position = UDim2.new(0.5, -110, 0.5, -110)
+        BackgroundWatermark.BackgroundTransparency = 1
+        BackgroundWatermark.Image = LOGO_ID
+        BackgroundWatermark.ImageTransparency = 0.88
+        BackgroundWatermark.ZIndex = 0
+        BackgroundWatermark.Parent = MainMenu
+
         local Header = Instance.new("Frame")
         Header.Size = UDim2.new(1, 0, 0, 45)
         Header.BackgroundTransparency = 1
+        Header.ZIndex = 2
         Header.Parent = MainMenu
 
         MakeDraggable(MainMenu, Header)
 
+        local AvatarHolder = Instance.new("Frame")
+        AvatarHolder.Size = UDim2.new(0, 34, 0, 34)
+        AvatarHolder.Position = UDim2.new(0, 12, 0, 6)
+        AvatarHolder.BackgroundColor3 = Color3.fromRGB(24, 16, 36)
+        AvatarHolder.ZIndex = 2
+        AvatarHolder.Parent = Header
+        Instance.new("UICorner", AvatarHolder).CornerRadius = UDim.new(1, 0)
+
+        local AvatarStroke = Instance.new("UIStroke")
+        AvatarStroke.Color = Color3.fromRGB(0, 255, 128)
+        AvatarStroke.Thickness = 1.5
+        AvatarStroke.Parent = AvatarHolder
+
+        local AvatarImage = Instance.new("ImageLabel")
+        AvatarImage.Size = UDim2.new(1, 0, 1, 0)
+        AvatarImage.BackgroundTransparency = 1
+        AvatarImage.ZIndex = 2
+        AvatarImage.Image = string.format("rbxthumb://type=AvatarHeadShot&id=%d&w=150&h=150", LocalPlayer.UserId)
+        AvatarImage.Parent = AvatarHolder
+        Instance.new("UICorner", AvatarImage).CornerRadius = UDim.new(1, 0)
+
         local TitleLabel = Instance.new("TextLabel")
-        TitleLabel.Size = UDim2.new(1, -50, 1, 0)
-        TitleLabel.Position = UDim2.new(0, 16, 0, 0)
+        TitleLabel.Size = UDim2.new(1, -95, 1, 0)
+        TitleLabel.Position = UDim2.new(0, 56, 0, 0)
         TitleLabel.BackgroundTransparency = 1
         TitleLabel.Text = "PXZD HUB IN TOP ⚡"
         TitleLabel.TextColor3 = Color3.fromRGB(168, 45, 255)
         TitleLabel.Font = Enum.Font.GothamBlack
-        TitleLabel.TextSize = 16
+        TitleLabel.TextSize = 15
         TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
-        TitleLabel.ZIndex = 3
+        TitleLabel.ZIndex = 2
         TitleLabel.Parent = Header
 
         local CloseMenuBtn = Instance.new("TextButton")
@@ -334,7 +377,7 @@ PlayCustomIntro(function()
         CloseMenuBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
         CloseMenuBtn.Font = Enum.Font.GothamBold
         CloseMenuBtn.TextSize = 13
-        CloseMenuBtn.ZIndex = 3
+        CloseMenuBtn.ZIndex = 2
         CloseMenuBtn.Parent = Header
         Instance.new("UICorner", CloseMenuBtn).CornerRadius = UDim.new(0, 7)
 
@@ -350,7 +393,6 @@ PlayCustomIntro(function()
         ToggleGui.Parent = GuiParent
 
         local ToggleBtn = Instance.new("ImageButton")
-        ToggleBtn.Name = "ToggleImageBtn"
         ToggleBtn.Size = UDim2.new(0, 42, 0, 42)
         ToggleBtn.Position = UDim2.new(0.02, 0, 0.2, 0)
         ToggleBtn.BackgroundTransparency = 1
@@ -365,17 +407,6 @@ PlayCustomIntro(function()
         ToggleStroke.Parent = ToggleBtn
 
         MakeDraggable(ToggleBtn, ToggleBtn)
-
-        task.spawn(function()
-            local t = 0
-            while ToggleBtn and ToggleBtn.Parent do
-                t = t + 0.05
-                local green = Color3.fromRGB(0, 255, 128)
-                local purple = Color3.fromRGB(168, 45, 255)
-                ToggleStroke.Color = green:Lerp(purple, (math.sin(t * 3) + 1) / 2)
-                task.wait(0.03)
-            end
-        end)
 
         ToggleBtn.MouseButton1Click:Connect(function()
             MainMenu.Visible = not MainMenu.Visible
@@ -400,6 +431,7 @@ PlayCustomIntro(function()
             local Row = Instance.new("Frame")
             Row.Size = UDim2.new(1, -8, 0, 44)
             Row.BackgroundColor3 = Color3.fromRGB(24, 16, 36)
+            Row.BackgroundTransparency = 0.15
             Row.ZIndex = 2
             Row.Parent = ScrollFrame
             Instance.new("UICorner", Row).CornerRadius = UDim.new(0, 8)
@@ -418,7 +450,7 @@ PlayCustomIntro(function()
             NameText.Font = Enum.Font.GothamBold
             NameText.TextSize = 12
             NameText.TextXAlignment = Enum.TextXAlignment.Left
-            NameText.ZIndex = 3
+            NameText.ZIndex = 2
             NameText.Parent = Row
 
             local ExecBtn = Instance.new("TextButton")
@@ -429,7 +461,7 @@ PlayCustomIntro(function()
             ExecBtn.TextColor3 = Color3.fromRGB(10, 25, 15)
             ExecBtn.Font = Enum.Font.GothamBlack
             ExecBtn.TextSize = 11
-            ExecBtn.ZIndex = 3
+            ExecBtn.ZIndex = 2
             ExecBtn.Parent = Row
             Instance.new("UICorner", ExecBtn).CornerRadius = UDim.new(0, 6)
 
@@ -460,59 +492,4 @@ PlayCustomIntro(function()
         CreateScriptRow("Server Premium 🤑", "https://raw.githubusercontent.com/raw-roblox/PrivateServerBypass/refs/heads/main/lua")
         CreateScriptRow("Chilli Hub", "https://raw.githubusercontent.com/tienkhanh1/spicy/main/Chilli.lua")
 
-        ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, UIList.AbsoluteContentSize.Y + 15)
-
-        pcall(function()
-            StarterGui:SetCore("SendNotification", {
-                Title = "⚡ PXZD HUB IN TOP ⚡",
-                Text = "¡Bienvenido " .. LocalPlayer.Name .. "! Script cargado.",
-                Duration = 4
-            })
-        end)
-    else
-        if GuiParent:FindFirstChild("PxzdHubCore") then GuiParent.PxzdHubCore:Destroy() end
-
-        local ScreenGui = Instance.new("ScreenGui")
-        ScreenGui.Name = "PxzdHubCore"
-        ScreenGui.ResetOnSpawn = false
-        ScreenGui.Parent = GuiParent
-
-        local MainFrame = Instance.new("Frame")
-        MainFrame.Name = "UpdateFrame"
-        MainFrame.Size = UDim2.new(0, 360, 0, 200)
-        MainFrame.Position = UDim2.new(0.5, -180, 0.5, -100)
-        MainFrame.BackgroundColor3 = Color3.fromRGB(14, 9, 22)
-        MainFrame.BorderSizePixel = 0
-        MainFrame.Parent = ScreenGui
-
-        Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
-
-        local UIStroke = Instance.new("UIStroke")
-        UIStroke.Color = Color3.fromRGB(168, 45, 255)
-        UIStroke.Thickness = 2
-        UIStroke.Parent = MainFrame
-
-        local Title = Instance.new("TextLabel")
-        Title.Size = UDim2.new(1, 0, 0, 30)
-        Title.Position = UDim2.new(0, 0, 0.35, 0)
-        Title.BackgroundTransparency = 1
-        Title.Text = "PXZD HUB IN TOP ⚡"
-        Title.TextColor3 = Color3.fromRGB(168, 45, 255)
-        Title.TextSize = 17
-        Title.Font = Enum.Font.GothamBlack
-        Title.Parent = MainFrame
-
-        local Description = Instance.new("TextLabel")
-        Description.Size = UDim2.new(1, -40, 0, 30)
-        Description.Position = UDim2.new(0, 20, 0.55, 0)
-        Description.BackgroundTransparency = 1
-        Description.Text = "GG tranquilo está en actualización"
-        Description.TextColor3 = Color3.fromRGB(200, 200, 210)
-        Description.TextSize = 13
-        Description.Font = Enum.Font.GothamSemibold
-        Description.Parent = MainFrame
-
-        task.wait(4)
-        ScreenGui:Destroy()
-    end
-end)
+        ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, UIList.AbsoluteContentSize
