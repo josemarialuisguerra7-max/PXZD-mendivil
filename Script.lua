@@ -1,5 +1,5 @@
 -- ==============================================================================
---  PXZD HUB PRO | INTRO SINCRONIZADA, BURBUJAS CON FADE Y BOTÓN MÓVIBLE
+--  PXZD HUB PRO | DEFINITIVO CON NUEVO BYPASS, BURBUJAS FADE Y BOTÓN MÓVIBLE
 -- ==============================================================================
 
 local Players = game:GetService("Players")
@@ -148,7 +148,7 @@ pcall(function()
             task.spawn(function()
                 for count = 1, 55 do
                     bubble.Position = bubble.Position - UDim2.new(0, 0, 0.02, 0)
-                    bubble.ImageTransparency = bubble.ImageTransparency + (1 / 55) -- Se desvanece al subir
+                    bubble.ImageTransparency = bubble.ImageTransparency + (1 / 55)
                     task.wait(0.04)
                 end
                 bubble:Destroy()
@@ -208,7 +208,7 @@ task.delay(7.0, function()
         ScreenGui.Name = "PXZD_MainGui"
         ScreenGui.ResetOnSpawn = false
 
-        -- Botón flotante lateral (AHORA MÓVIBLE / DRAGGABLE)
+        -- Botón flotante lateral (MÓVIBLE)
         local ToggleBtn = Instance.new("ImageButton", ScreenGui)
         ToggleBtn.Size = UDim2.new(0, 48, 0, 48)
         ToggleBtn.Position = UDim2.new(0, 15, 0.35, 0)
@@ -221,7 +221,7 @@ task.delay(7.0, function()
         ToggleStroke.Thickness = 3
         ToggleStroke.Color = Color3.fromRGB(0, 255, 100)
 
-        MakeDraggable(ToggleBtn, ToggleBtn) -- ¡Aquí aplicamos para que puedas mover el círculo!
+        MakeDraggable(ToggleBtn, ToggleBtn)
 
         -- Marco principal CENTRADO
         local Main = Instance.new("Frame", ScreenGui)
@@ -377,7 +377,7 @@ task.delay(7.0, function()
             end)
         end)
 
-        -- TARJETA 3: SERVER BYPASS (GITHUB)
+        -- TARJETA 3: SERVER BYPASS (ACTUALIZADO CON TU NUEVO SCRIPT)
         local BypassCard = Instance.new("Frame", Container)
         BypassCard.Size = UDim2.new(1, 0, 0, 50)
         BypassCard.BackgroundColor3 = Color3.fromRGB(20, 28, 38)
@@ -405,7 +405,7 @@ task.delay(7.0, function()
 
         BypassExecBtn.MouseButton1Click:Connect(function()
             pcall(function()
-                loadstring(game:HttpGet("https://raw.githubusercontent.com/kittylol-hub/Kittylol/refs/heads/main/main.lua"))()
+                loadstring(game:HttpGet("https://raw.githubusercontent.com/raw-roblox/PrivateServerBypass/refs/heads/main/lua"))()
                 BypassExecBtn.Text = "Bypassed!"
                 BypassExecBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 60)
             end)
