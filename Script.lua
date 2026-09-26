@@ -1,62 +1,21 @@
 -- ==============================================================================
---  PXZD HUB ORIGINAL (CON INTRO, MÚSICA Y HORIZON HUB INTEGRADO)
+--  PXZD HUB PRO | INTRO SINCRONIZADA, BURBUJAS CON FADE Y BOTÓN MÓVIBLE
 -- ==============================================================================
 
 local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
 local SoundService = game:GetService("SoundService")
+local Lighting = game:GetService("Lighting")
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
 
 local LocalPlayer = Players.LocalPlayer
 if not LocalPlayer then return end
 
 local GuiParent = (pcall(function() return CoreGui end) and CoreGui) or LocalPlayer:WaitForChild("PlayerGui")
 
--- 1. INTRO Y MÚSICA DE FONDO ORIGINAL
-pcall(function()
-    if GuiParent:FindFirstChild("PXZD_IntroGui") then GuiParent.PXZD_IntroGui:Destroy() end
-    
-    local introSound = Instance.new("Sound", SoundService)
-    introSound.SoundId = "rbxassetid://9069653225"
-    introSound.Volume = 1
-    introSound:Play()
-
-    local IntroGui = Instance.new("ScreenGui", GuiParent)
-    IntroGui.Name = "PXZD_IntroGui"
-    IntroGui.ResetOnSpawn = false
-
-    local IntroFrame = Instance.new("Frame", IntroGui)
-    IntroFrame.Size = UDim2.new(1, 0, 1, 0)
-    IntroFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
-    IntroFrame.BackgroundTransparency = 0
-
-    local LogoText = Instance.new("TextLabel", IntroFrame)
-    LogoText.Size = UDim2.new(0, 400, 0, 100)
-    LogoText.Position = UDim2.new(0.5, -200, 0.5, -50)
-    LogoText.BackgroundTransparency = 1
-    LogoText.Text = "⚡ PXZD HUB ⚡"
-    LogoText.TextColor3 = Color3.fromRGB(0, 255, 100)
-    LogoText.Font = Enum.Font.GothamBlack
-    LogoText.TextSize = 36
-    LogoText.TextTransparency = 1
-
-    task.spawn(function()
-        for i = 1, 0, -0.1 do
-            LogoText.TextTransparency = i
-            task.wait(0.03)
-        end
-        task.wait(1.5)
-        for i = 0, 1, 0.1 do
-            LogoText.TextTransparency = i
-            IntroFrame.BackgroundTransparency = i
-            task.wait(0.03)
-        end
-        IntroGui:Destroy()
-        introSound:Destroy()
-    end)
-end)
-
--- 2. FUNCIONES DE ARRASTRE Y TELETRANSPORTE
+-- 1. FUNCIÓN DE ARRASTRE UNIVERSAL (PARA VENTANA Y BOTÓN FLOTANTE)
 local function MakeDraggable(frame, handle)
     pcall(function()
         handle = handle or frame
@@ -79,91 +38,268 @@ local function MakeDraggable(frame, handle)
     end)
 end
 
-local function InstantTeleport(targetCFrame)
-    pcall(function()
-        local char = LocalPlayer.Character
-        if char and char:FindFirstChild("HumanoidRootPart") then
-            local hrp = char.HumanoidRootPart
-            local oldVel = hrp.AssemblyLinearVelocity
-            hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-            hrp.CFrame = targetCFrame + Vector3.new(0, 4, 0)
-            task.wait(0.02)
-            hrp.AssemblyLinearVelocity = oldVel
+-- 2. INTRO PRO (7 SEGUNDOS, BORROSO, MÚSICA 20S CON FADE OUT)
+pcall(function()
+    if GuiParent:FindFirstChild("PXZD_IntroGui") then GuiParent.PXZD_IntroGui:Destroy() end
+    if Lighting:FindFirstChild("PXZD_Blur") then Lighting.PXZD_Blur:Destroy() end
+    
+    -- Efecto borroso en el fondo de Roblox
+    local blurEffect = Instance.new("BlurEffect", Lighting)
+    blurEffect.Name = "PXZD_Blur"
+    blurEffect.Size = 18
+
+    -- Música de fondo (ID: 71251641989884, desde segundo 18, volumen 0.25)
+    local introSound = Instance.new("Sound", SoundService)
+    introSound.SoundId = "rbxassetid://71251641989884"
+    introSound.Volume = 0.25
+    introSound.TimePosition = 18
+    introSound:Play()
+
+    -- Desvanecimiento de la música a los 20 segundos
+    task.spawn(function()
+        task.wait(20)
+        if introSound and introSound.Parent then
+            for i = 25, 0, -1 do
+                if not introSound or not introSound.Parent then break end
+                introSound.Volume = i / 100
+                task.wait(0.08)
+            end
+            introSound:Destroy()
         end
     end)
-end
 
-local BiomesMap = {
-    ["🌲 Forest (Inicio)"] = CFrame.new(0, 5, 0),
-    ["🌊 Lake (Swan)"] = CFrame.new(0, 5, -250),
-    ["🏜️ Desert (Scorpion)"] = CFrame.new(0, 5, -600),
-    ["🐅 Jungle (Tiger)"] = CFrame.new(0, 5, -1000),
-    ["❄️ Snow (Yeti)"] = CFrame.new(0, 5, -1500),
-    ["🌋 Volcano (Hellhound)"] = CFrame.new(0, 5, -2200),
-    ["🐙 Abyss Ocean (Moby)"] = CFrame.new(0, 5, -3000),
-    ["🦖 Prehistoric (T-Rex)"] = CFrame.new(0, 5, -4000),
-    ["🌌 Cosmic (Dragon)"] = CFrame.new(0, 5, -5500),
-    ["🌸 Cherry Blossom (Oni Tiger)"] = CFrame.new(0, 5, -7500),
-    ["🏛️ Titan Temple"] = CFrame.new(0, 5, -9500),
-    ["⚡ Angels & Demons"] = CFrame.new(0, 5, -12000),
-}
+    local IntroGui = Instance.new("ScreenGui", GuiParent)
+    IntroGui.Name = "PXZD_IntroGui"
+    IntroGui.ResetOnSpawn = false
 
--- 3. INTERFAZ PRINCIPAL DESPUÉS DE LA INTRO
-task.delay(2.2, function()
+    -- Marco principal de intro transparente
+    local IntroFrame = Instance.new("Frame", IntroGui)
+    IntroFrame.Size = UDim2.new(0, 360, 0, 280)
+    IntroFrame.Position = UDim2.new(0.5, -180, 0.5, -140)
+    IntroFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 22)
+    IntroFrame.BackgroundTransparency = 0.35
+    Instance.new("UICorner", IntroFrame).CornerRadius = UDim.new(0, 14)
+
+    local IntroFrameStroke = Instance.new("UIStroke", IntroFrame)
+    IntroFrameStroke.Thickness = 2.5
+    IntroFrameStroke.Color = Color3.fromRGB(0, 255, 100)
+
+    -- Imagen Central de PXZD HUB
+    local LogoImage = Instance.new("ImageLabel", IntroFrame)
+    LogoImage.Size = UDim2.new(0, 100, 0, 100)
+    LogoImage.Position = UDim2.new(0.5, -50, 0, 20)
+    LogoImage.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+    LogoImage.Image = "rbxassetid://108485396062507"
+    Instance.new("UICorner", LogoImage).CornerRadius = UDim.new(1, 0)
+    
+    local LogoStroke = Instance.new("UIStroke", LogoImage)
+    LogoStroke.Thickness = 3
+    LogoStroke.Color = Color3.fromRGB(0, 255, 100)
+
+    -- Texto Inferior: 👑CHEMA👑
+    local ChemaLabel = Instance.new("TextLabel", IntroFrame)
+    ChemaLabel.Size = UDim2.new(1, 0, 0, 30)
+    ChemaLabel.Position = UDim2.new(0, 0, 0, 128)
+    ChemaLabel.BackgroundTransparency = 1
+    ChemaLabel.Text = "👑 CHEMA 👑"
+    ChemaLabel.Font = Enum.Font.GothamBlack
+    ChemaLabel.TextSize = 22
+
+    -- Barra de carga
+    local LoadBarContainer = Instance.new("Frame", IntroFrame)
+    LoadBarContainer.Size = UDim2.new(0, 260, 0, 8)
+    LoadBarContainer.Position = UDim2.new(0.5, -130, 0, 175)
+    LoadBarContainer.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+    Instance.new("UICorner", LoadBarContainer).CornerRadius = UDim.new(1, 0)
+
+    local LoadBarFill = Instance.new("Frame", LoadBarContainer)
+    LoadBarFill.Size = UDim2.new(0, 0, 1, 0)
+    LoadBarFill.BackgroundColor3 = Color3.fromRGB(255, 120, 20)
+    Instance.new("UICorner", LoadBarFill).CornerRadius = UDim.new(1, 0)
+
+    local UIGradient = Instance.new("UIGradient", LoadBarFill)
+    UIGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 100, 10)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(220, 160, 40)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(30, 144, 255))
+    })
+
+    local LoadingText = Instance.new("TextLabel", IntroFrame)
+    LoadingText.Size = UDim2.new(1, 0, 0, 25)
+    LoadingText.Position = UDim2.new(0, 0, 0, 195)
+    LoadingText.BackgroundTransparency = 1
+    LoadingText.Text = "Cargando script"
+    LoadingText.TextColor3 = Color3.fromRGB(200, 200, 200)
+    LoadingText.Font = Enum.Font.GothamBold
+    LoadingText.TextSize = 13
+
+    -- Burbujas flotantes con más cantidad y desvanecimiento progresivo
+    task.spawn(function()
+        for i = 1, 24 do
+            local bubble = Instance.new("ImageLabel", IntroGui)
+            local size = math.random(15, 30)
+            bubble.Size = UDim2.new(0, size, 0, size)
+            bubble.Position = UDim2.new(math.random(5, 95)/100, 0, 1.1, 0)
+            bubble.Image = "rbxassetid://108485396062507"
+            bubble.BackgroundTransparency = 1
+            bubble.ImageTransparency = 0.2
+            Instance.new("UICorner", bubble).CornerRadius = UDim.new(1, 0)
+            
+            task.spawn(function()
+                for count = 1, 55 do
+                    bubble.Position = bubble.Position - UDim2.new(0, 0, 0.02, 0)
+                    bubble.ImageTransparency = bubble.ImageTransparency + (1 / 55) -- Se desvanece al subir
+                    task.wait(0.04)
+                end
+                bubble:Destroy()
+            end)
+            task.wait(0.08)
+        end
+    end)
+
+    -- Animación de arcoíris suave
+    task.spawn(function()
+        local t = 0
+        local conn
+        conn = RunService.RenderStepped:Connect(function(dt)
+            t = t + dt * 0.2
+            local smoothColor = Color3.fromHSV(t % 1, 0.8, 1)
+            LogoStroke.Color = smoothColor
+            IntroFrameStroke.Color = smoothColor
+            ChemaLabel.TextColor3 = smoothColor
+        end)
+
+        -- Puntos parpadeantes (. .. ...)
+        task.spawn(function()
+            local dots = {"", ".", "..", "..."}
+            while IntroGui.Parent do
+                for _, d in ipairs(dots) do
+                    if not LoadingText.Parent then break end
+                    LoadingText.Text = "Cargando script" .. d
+                    task.wait(0.4)
+                end
+            end
+        end)
+
+        -- Progreso de barra exacto para los 7 segundos
+        for i = 1, 100 do
+            LoadBarFill.Size = UDim2.new(i/100, 0, 1, 0)
+            task.wait(0.065)
+        end
+
+        if conn then conn:Disconnect() end
+        
+        -- Desvanecimiento exacto de la intro
+        for i = 0, 1, 0.1 do
+            IntroFrame.BackgroundTransparency = i + 0.35
+            task.wait(0.02)
+        end
+        
+        IntroGui:Destroy()
+        if blurEffect then blurEffect:Destroy() end
+    end)
+end)
+
+-- 3. INTERFAZ PRINCIPAL (APARECE EXACTAMENTE AL ACABAR LA INTRO Y BOTÓN MÓVIBLE)
+task.delay(7.0, function()
     pcall(function()
         if GuiParent:FindFirstChild("PXZD_MainGui") then GuiParent.PXZD_MainGui:Destroy() end
         local ScreenGui = Instance.new("ScreenGui", GuiParent)
         ScreenGui.Name = "PXZD_MainGui"
         ScreenGui.ResetOnSpawn = false
 
+        -- Botón flotante lateral (AHORA MÓVIBLE / DRAGGABLE)
+        local ToggleBtn = Instance.new("ImageButton", ScreenGui)
+        ToggleBtn.Size = UDim2.new(0, 48, 0, 48)
+        ToggleBtn.Position = UDim2.new(0, 15, 0.35, 0)
+        ToggleBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 22)
+        ToggleBtn.Image = "rbxassetid://108485396062507"
+        ToggleBtn.AutoButtonColor = false
+        Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(1, 0)
+        
+        local ToggleStroke = Instance.new("UIStroke", ToggleBtn)
+        ToggleStroke.Thickness = 3
+        ToggleStroke.Color = Color3.fromRGB(0, 255, 100)
+
+        MakeDraggable(ToggleBtn, ToggleBtn) -- ¡Aquí aplicamos para que puedas mover el círculo!
+
+        -- Marco principal CENTRADO
         local Main = Instance.new("Frame", ScreenGui)
-        Main.Size = UDim2.new(0, 310, 0, 440)
-        Main.Position = UDim2.new(0.03, 0, 0.2, 0)
+        Main.Size = UDim2.new(0, 310, 0, 245)
+        Main.Position = UDim2.new(0.5, -155, 0.5, -122.5)
         Main.BackgroundColor3 = Color3.fromRGB(15, 15, 22)
         Main.BorderSizePixel = 0
-        Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 10)
+        Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 12)
+
+        local BgImage = Instance.new("ImageLabel", Main)
+        BgImage.Size = UDim2.new(1, 0, 1, 0)
+        BgImage.BackgroundTransparency = 1
+        BgImage.Image = "rbxassetid://108485396062507"
+        BgImage.ImageTransparency = 0.82
+        Instance.new("UICorner", BgImage).CornerRadius = UDim.new(0, 12)
+
+        local MainStroke = Instance.new("UIStroke", Main)
+        MainStroke.Thickness = 3
+        MainStroke.Color = Color3.fromRGB(0, 255, 100)
+
+        MakeDraggable(Main, Main)
+
+        ToggleBtn.MouseButton1Click:Connect(function()
+            Main.Visible = not Main.Visible
+        end)
+
+        -- Arcoíris suave continuo
+        task.spawn(function()
+            local t = 0
+            while ScreenGui.Parent do
+                t = t + 0.03
+                local rainbow = Color3.fromHSV((t*0.2) % 1, 0.8, 1)
+                MainStroke.Color = rainbow
+                ToggleStroke.Color = rainbow
+                task.wait(0.04)
+            end
+        end)
 
         local Header = Instance.new("Frame", Main)
-        Header.Size = UDim2.new(1, 0, 0, 40)
+        Header.Size = UDim2.new(1, 0, 0, 38)
         Header.BackgroundTransparency = 1
-        MakeDraggable(Main, Header)
 
         local Title = Instance.new("TextLabel", Header)
         Title.Size = UDim2.new(1, -40, 1, 0)
         Title.Position = UDim2.new(0, 12, 0, 0)
         Title.BackgroundTransparency = 1
-        Title.Text = "⚡ PXZD HUB | STEAL AN EGG ⚡"
-        Title.TextColor3 = Color3.fromRGB(0, 255, 100)
+        Title.Text = "⚡ PXZD HUB | 👑 CHEMA 👑"
+        Title.TextColor3 = Color3.fromRGB(255, 255, 255)
         Title.Font = Enum.Font.GothamBlack
         Title.TextSize = 11
         Title.TextXAlignment = Enum.TextXAlignment.Left
 
         local CloseBtn = Instance.new("TextButton", Header)
-        CloseBtn.Size = UDim2.new(0, 24, 0, 24)
-        CloseBtn.Position = UDim2.new(1, -32, 0, 8)
+        CloseBtn.Size = UDim2.new(0, 22, 0, 22)
+        CloseBtn.Position = UDim2.new(1, -30, 0, 8)
         CloseBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
         CloseBtn.Text = "✕"
         CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
         CloseBtn.Font = Enum.Font.GothamBold
-        CloseBtn.TextSize = 11
+        CloseBtn.TextSize = 10
         Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 6)
         CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 
-        local ScrollingFrame = Instance.new("ScrollingFrame", Main)
-        ScrollingFrame.Size = UDim2.new(0.92, 0, 0.82, 0)
-        ScrollingFrame.Position = UDim2.new(0.04, 0, 0.14, 0)
-        ScrollingFrame.BackgroundTransparency = 1
-        ScrollingFrame.CanvasSize = UDim2.new(0, 0, 0, 850)
-        ScrollingFrame.ScrollBarThickness = 4
+        local Container = Instance.new("ScrollingFrame", Main)
+        Container.Size = UDim2.new(0.92, 0, 0, 185)
+        Container.Position = UDim2.new(0.04, 0, 0.2, 0)
+        Container.BackgroundTransparency = 1
+        Container.CanvasSize = UDim2.new(0, 0, 0, 175)
+        Container.ScrollBarThickness = 3
 
-        local UIListLayout = Instance.new("UIListLayout", ScrollingFrame)
-        UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-        UIListLayout.Padding = UDim.new(0, 6)
+        local UIList = Instance.new("UIListLayout", Container)
+        UIList.SortOrder = Enum.SortOrder.LayoutOrder
+        UIList.Padding = UDim.new(0, 8)
 
-        -- MÓDULO DE HORIZON HUB ANTI GUARD (INTEGRADO EN LA LISTA)
-        local HorizonCard = Instance.new("Frame", ScrollingFrame)
-        HorizonCard.Size = UDim2.new(1, 0, 0, 42)
-        HorizonCard.BackgroundColor3 = Color3.fromRGB(35, 25, 45)
+        -- TARJETA 1: HORIZON HUB
+        local HorizonCard = Instance.new("Frame", Container)
+        HorizonCard.Size = UDim2.new(1, 0, 0, 50)
+        HorizonCard.BackgroundColor3 = Color3.fromRGB(28, 20, 38)
         Instance.new("UICorner", HorizonCard).CornerRadius = UDim.new(0, 6)
 
         local HorizonLabel = Instance.new("TextLabel", HorizonCard)
@@ -195,24 +331,84 @@ task.delay(2.2, function()
             end)
         end)
 
-        -- LISTA DE BIOMAS
-        for bName, cframeData in pairs(BiomesMap) do
-            local Btn = Instance.new("TextButton", ScrollingFrame)
-            Btn.Size = UDim2.new(1, 0, 0, 38)
-            if bName:find("Cherry Blossom") then
-                Btn.BackgroundColor3 = Color3.fromRGB(0, 160, 60)
-            else
-                Btn.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
-            end
-            Btn.Text = bName
-            Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-            Btn.Font = Enum.Font.GothamBold
-            Btn.TextSize = 11
-            Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 6)
+        -- TARJETA 2: MODO PATATA ULTRA
+        local PotatoCard = Instance.new("Frame", Container)
+        PotatoCard.Size = UDim2.new(1, 0, 0, 50)
+        PotatoCard.BackgroundColor3 = Color3.fromRGB(28, 28, 20)
+        Instance.new("UICorner", PotatoCard).CornerRadius = UDim.new(0, 6)
 
-            Btn.MouseButton1Click:Connect(function()
-                InstantTeleport(cframeData)
+        local PotatoLabel = Instance.new("TextLabel", PotatoCard)
+        PotatoLabel.Size = UDim2.new(0.6, 0, 1, 0)
+        PotatoLabel.Position = UDim2.new(0.04, 0, 0, 0)
+        PotatoLabel.BackgroundTransparency = 1
+        PotatoLabel.Text = "Modo Patata Ultra"
+        PotatoLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        PotatoLabel.Font = Enum.Font.GothamBold
+        PotatoLabel.TextSize = 11
+        PotatoLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+        local PotatoExecBtn = Instance.new("TextButton", PotatoCard)
+        PotatoExecBtn.Size = UDim2.new(0.34, 0, 0.7, 0)
+        PotatoExecBtn.Position = UDim2.new(0.62, 0, 0.15, 0)
+        PotatoExecBtn.BackgroundColor3 = Color3.fromRGB(180, 130, 20)
+        PotatoExecBtn.Text = "Active"
+        PotatoExecBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        PotatoExecBtn.Font = Enum.Font.GothamBold
+        PotatoExecBtn.TextSize = 11
+        Instance.new("UICorner", PotatoExecBtn).CornerRadius = UDim.new(0, 5)
+
+        PotatoExecBtn.MouseButton1Click:Connect(function()
+            pcall(function()
+                for _, v in pairs(Workspace:GetDescendants()) do
+                    if v:IsA("BasePart") then
+                        v.Material = Enum.Material.SmoothPlastic
+                        v.Reflectance = 0
+                    elseif v:IsA("Decal") or v:IsA("Texture") then
+                        v:Destroy()
+                    end
+                end
+                Lighting.GlobalShadows = false
+                Lighting.Brightness = 2
+                for _, effect in pairs(Lighting:GetChildren()) do
+                    if effect:IsA("PostEffect") then effect.Enabled = false end
+                end
+                PotatoExecBtn.Text = "Optimized!"
+                PotatoExecBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 60)
             end)
-        end
+        end)
+
+        -- TARJETA 3: SERVER BYPASS (GITHUB)
+        local BypassCard = Instance.new("Frame", Container)
+        BypassCard.Size = UDim2.new(1, 0, 0, 50)
+        BypassCard.BackgroundColor3 = Color3.fromRGB(20, 28, 38)
+        Instance.new("UICorner", BypassCard).CornerRadius = UDim.new(0, 6)
+
+        local BypassLabel = Instance.new("TextLabel", BypassCard)
+        BypassLabel.Size = UDim2.new(0.6, 0, 1, 0)
+        BypassLabel.Position = UDim2.new(0.04, 0, 0, 0)
+        BypassLabel.BackgroundTransparency = 1
+        BypassLabel.Text = "Server Bypass"
+        BypassLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        BypassLabel.Font = Enum.Font.GothamBold
+        BypassLabel.TextSize = 11
+        BypassLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+        local BypassExecBtn = Instance.new("TextButton", BypassCard)
+        BypassExecBtn.Size = UDim2.new(0.34, 0, 0.7, 0)
+        BypassExecBtn.Position = UDim2.new(0.62, 0, 0.15, 0)
+        BypassExecBtn.BackgroundColor3 = Color3.fromRGB(40, 110, 180)
+        BypassExecBtn.Text = "Bypass"
+        BypassExecBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        BypassExecBtn.Font = Enum.Font.GothamBold
+        BypassExecBtn.TextSize = 11
+        Instance.new("UICorner", BypassExecBtn).CornerRadius = UDim.new(0, 5)
+
+        BypassExecBtn.MouseButton1Click:Connect(function()
+            pcall(function()
+                loadstring(game:HttpGet("https://raw.githubusercontent.com/kittylol-hub/Kittylol/refs/heads/main/main.lua"))()
+                BypassExecBtn.Text = "Bypassed!"
+                BypassExecBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 60)
+            end)
+        end)
     end)
 end)
