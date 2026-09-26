@@ -1,6 +1,7 @@
 -- ==============================================================================
---  PXZD HUB | INTRO, MÚSICA, HORIZON INTEGRADO Y BIOMAS
+--  PXZD HUB ORIGINAL (CON INTRO, MÚSICA Y HORIZON HUB INTEGRADO)
 -- ==============================================================================
+
 local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
@@ -15,9 +16,8 @@ local GuiParent = (pcall(function() return CoreGui end) and CoreGui) or LocalPla
 pcall(function()
     if GuiParent:FindFirstChild("PXZD_IntroGui") then GuiParent.PXZD_IntroGui:Destroy() end
     
-    -- Reproducir música de intro
     local introSound = Instance.new("Sound", SoundService)
-    introSound.SoundId = "rbxassetid://9069653225" -- ID de música clásica para hubs
+    introSound.SoundId = "rbxassetid://9069653225"
     introSound.Volume = 1
     introSound:Play()
 
@@ -30,7 +30,6 @@ pcall(function()
     IntroFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
     IntroFrame.BackgroundTransparency = 0
 
-
     local LogoText = Instance.new("TextLabel", IntroFrame)
     LogoText.Size = UDim2.new(0, 400, 0, 100)
     LogoText.Position = UDim2.new(0.5, -200, 0.5, -50)
@@ -41,7 +40,6 @@ pcall(function()
     LogoText.TextSize = 36
     LogoText.TextTransparency = 1
 
-    -- Animación de entrada
     task.spawn(function()
         for i = 1, 0, -0.1 do
             LogoText.TextTransparency = i
@@ -110,7 +108,7 @@ local BiomesMap = {
     ["⚡ Angels & Demons"] = CFrame.new(0, 5, -12000),
 }
 
--- 3. INTERFAZ PRINCIPAL CON HORIZON Y BIOMAS INTEGRADOS
+-- 3. INTERFAZ PRINCIPAL DESPUÉS DE LA INTRO
 task.delay(2.2, function()
     pcall(function()
         if GuiParent:FindFirstChild("PXZD_MainGui") then GuiParent.PXZD_MainGui:Destroy() end
@@ -162,7 +160,7 @@ task.delay(2.2, function()
         UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
         UIListLayout.Padding = UDim.new(0, 6)
 
-        -- TARJETA DE HORIZON HUB ANTI GUARD (CON BOTÓN EXECUTE)
+        -- MÓDULO DE HORIZON HUB ANTI GUARD (INTEGRADO EN LA LISTA)
         local HorizonCard = Instance.new("Frame", ScrollingFrame)
         HorizonCard.Size = UDim2.new(1, 0, 0, 42)
         HorizonCard.BackgroundColor3 = Color3.fromRGB(35, 25, 45)
