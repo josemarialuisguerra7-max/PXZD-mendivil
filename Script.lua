@@ -1,18 +1,9 @@
 -- ==============================================================================
---  PXZD HUB + HORIZON HUB (CON BOTÓN DE ACCESO VISIBLE)
+--  PXZD HUB | VERSIÓN FINAL CON MÓDULO HORIZON INTEGRADO EN UI
 -- ==============================================================================
-
--- 1. Cargar Horizon Hub de forma segura
-pcall(function()
-    getgenv().script_key = "Trial"
-    loadstring(game:HttpGet("https://api.getpolsec.com/scripts/hosted/6582551b42d21c6b7eb55f1d76d8d50ce53cb35592093d6615b5e83437594dc0.lua"))()
-end)
-
--- 2. Interfaz y Teletransporte de PXZD Hub + Botón para Horizon
 local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
-local VirtualInputManager = game:GetService("VirtualInputManager")
 
 local LocalPlayer = Players.LocalPlayer
 if not LocalPlayer then return end
@@ -41,7 +32,7 @@ local function MakeDraggable(frame, handle)
     end)
 end
 
--- Teletransporte instantáneo a biomas
+-- Teletransporte instantáneo a biomas con bypass anti-cheat
 local function InstantTeleport(targetCFrame)
     pcall(function()
         local char = LocalPlayer.Character
@@ -71,15 +62,15 @@ local BiomesMap = {
     ["⚡ Angels & Demons"] = CFrame.new(0, 5, -12000),
 }
 
--- ==================== INTERFAZ PRINCIPAL PXZD ====================
+-- ==================== INTERFAZ GRÁFICA UNIFICADA ====================
 pcall(function()
-    if GuiParent:FindFirstChild("PXZD_UltimateGui") then GuiParent.PXZD_UltimateGui:Destroy() end
+    if GuiParent:FindFirstChild("PXZD_FinalHubGui") then GuiParent.PXZD_FinalHubGui:Destroy() end
     local ScreenGui = Instance.new("ScreenGui", GuiParent)
-    ScreenGui.Name = "PXZD_UltimateGui"
+    ScreenGui.Name = "PXZD_FinalHubGui"
     ScreenGui.ResetOnSpawn = false
 
     local Main = Instance.new("Frame", ScreenGui)
-    Main.Size = UDim2.new(0, 280, 0, 430)
+    Main.Size = UDim2.new(0, 310, 0, 440)
     Main.Position = UDim2.new(0.03, 0, 0.2, 0)
     Main.BackgroundColor3 = Color3.fromRGB(15, 15, 22)
     Main.BorderSizePixel = 0
@@ -94,7 +85,7 @@ pcall(function()
     Title.Size = UDim2.new(1, -40, 1, 0)
     Title.Position = UDim2.new(0, 12, 0, 0)
     Title.BackgroundTransparency = 1
-    Title.Text = "⚡ PXZD HUB + HORIZON ⚡"
+    Title.Text = "⚡ PXZD HUB | CONTROL PANEL ⚡"
     Title.TextColor3 = Color3.fromRGB(0, 255, 100)
     Title.Font = Enum.Font.GothamBlack
     Title.TextSize = 11
@@ -111,36 +102,62 @@ pcall(function()
     Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 6)
     CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 
-    -- Botón especial para forzar la apertura del menú de Horizon Hub por si usa tecla oculta
-    local HorizonToggle = Instance.new("TextButton", Main)
-    HorizonToggle.Size = UDim2.new(0.92, 0, 0, 36)
-    HorizonToggle.Position = UDim2.new(0.04, 0, 0.11, 0)
-    HorizonToggle.BackgroundColor3 = Color3.fromRGB(120, 40, 180)
-    HorizonToggle.Text = "🔮 Abrir / Toggle Horizon Hub"
-    HorizonToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
-    HorizonToggle.Font = Enum.Font.GothamBold
-    HorizonToggle.TextSize = 11
-    Instance.new("UICorner", HorizonToggle).CornerRadius = UDim.new(0, 6)
-    
-    HorizonToggle.MouseButton1Click:Connect(function()
-        pcall(function()
-            -- Simula la tecla Insert o RightShift que suelen usar los hubs de pago para abrirse
-            VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.RightShift, false, game)
-            VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.RightShift, false, game)
-        end)
-    end)
-
     local ScrollingFrame = Instance.new("ScrollingFrame", Main)
-    ScrollingFrame.Size = UDim2.new(0.92, 0, 0.72, 0)
-    ScrollingFrame.Position = UDim2.new(0.04, 0, 0.25, 0)
+    ScrollingFrame.Size = UDim2.new(0.92, 0, 0.82, 0)
+    ScrollingFrame.Position = UDim2.new(0.04, 0, 0.14, 0)
     ScrollingFrame.BackgroundTransparency = 1
-    ScrollingFrame.CanvasSize = UDim2.new(0, 0, 0, 700)
+    ScrollingFrame.CanvasSize = UDim2.new(0, 0, 0, 800)
     ScrollingFrame.ScrollBarThickness = 4
 
     local UIListLayout = Instance.new("UIListLayout", ScrollingFrame)
     UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
     UIListLayout.Padding = UDim.new(0, 6)
 
+    -- TARJETA DE HORIZON HUB ANTI GUARD (ESTILO CHEMXHUB CON BOTÓN EXECUTE)
+    local HorizonCard = Instance.new("Frame", ScrollingFrame)
+    HorizonCard.Size = UDim2.new(1, 0, 0, 50)
+    HorizonCard.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+    Instance.new("UICorner", HorizonCard).CornerRadius = UDim.new(0, 6)
+
+    local HorizonLabel = Instance.new("TextLabel", HorizonCard)
+    HorizonLabel.Size = UDim2.new(0.6, 0, 1, 0)
+    HorizonLabel.Position = UDim2.new(0.05, 0, 0, 0)
+    HorizonLabel.BackgroundTransparency = 1
+    HorizonLabel.Text = "Horizon Hub Anti Guard"
+    HorizonLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    HorizonLabel.Font = Enum.Font.GothamBold
+    HorizonLabel.TextSize = 11
+    HorizonLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+    local HorizonExecBtn = Instance.new("TextButton", HorizonCard)
+    HorizonExecBtn.Size = UDim2.new(0.32, 0, 0.7, 0)
+    HorizonExecBtn.Position = UDim2.new(0.64, 0, 0.15, 0)
+    HorizonExecBtn.BackgroundColor3 = Color3.fromRGB(230, 110, 10) -- Naranja clásico de Execute
+    HorizonExecBtn.Text = "Execute"
+    HorizonExecBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    HorizonExecBtn.Font = Enum.Font.GothamBold
+    HorizonExecBtn.TextSize = 11
+    Instance.new("UICorner", HorizonExecBtn).CornerRadius = UDim.new(0, 6)
+
+    HorizonExecBtn.MouseButton1Click:Connect(function()
+        pcall(function()
+            getgenv().script_key = "Trial"
+            loadstring(game:HttpGet("https://api.getpolsec.com/scripts/hosted/6582551b42d21c6b7eb55f1d76d8d50ce53cb35592093d6615b5e83437594dc0.lua"))()
+            HorizonExecBtn.Text = "Loaded!"
+            HorizonExecBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 60)
+        end)
+    end)
+
+    -- SEPARADOR VISUAL DE BIOMAS
+    local Separator = Instance.new("TextLabel", ScrollingFrame)
+    Separator.Size = UDim2.new(1, 0, 0, 25)
+    Separator.BackgroundTransparency = 1
+    Separator.Text = "─── TELEPORT A BIOMAS / HUEVOS ───"
+    Separator.TextColor3 = Color3.fromRGB(150, 150, 160)
+    Separator.Font = Enum.Font.GothamBold
+    Separator.TextSize = 10
+
+    -- LISTA DE BOTONES DE BIOMAS
     for bName, cframeData in pairs(BiomesMap) do
         local Btn = Instance.new("TextButton", ScrollingFrame)
         Btn.Size = UDim2.new(1, 0, 0, 38)
