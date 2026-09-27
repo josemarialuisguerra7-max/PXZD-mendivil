@@ -1,5 +1,5 @@
 -- ==============================================================================
---  PXZD HUB PRO | INTRO, BURBUJAS CON FADE, BOTÓN MÓVIBLE Y 3 FUNCIONES COMPLETAS
+--  PXZD HUB PRO | INTRO, BURBUJAS CON FADE, BOTÓN MÓVIBLE Y 4 FUNCIONES
 -- ==============================================================================
 
 local Players = game:GetService("Players")
@@ -223,10 +223,10 @@ task.delay(7.0, function()
 
         MakeDraggable(ToggleBtn, ToggleBtn)
 
-        -- Marco principal CENTRADO
+        -- Marco principal CENTRADO (Altura adaptada para 4 opciones)
         local Main = Instance.new("Frame", ScreenGui)
-        Main.Size = UDim2.new(0, 310, 0, 255)
-        Main.Position = UDim2.new(0.5, -155, 0.5, -127.5)
+        Main.Size = UDim2.new(0, 310, 0, 275)
+        Main.Position = UDim2.new(0.5, -155, 0.5, -137.5)
         Main.BackgroundColor3 = Color3.fromRGB(15, 15, 22)
         Main.BorderSizePixel = 0
         Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 12)
@@ -286,10 +286,10 @@ task.delay(7.0, function()
         CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 
         local Container = Instance.new("ScrollingFrame", Main)
-        Container.Size = UDim2.new(0.92, 0, 0, 195)
+        Container.Size = UDim2.new(0.92, 0, 0, 215)
         Container.Position = UDim2.new(0.04, 0, 0.18, 0)
         Container.BackgroundTransparency = 1
-        Container.CanvasSize = UDim2.new(0, 0, 0, 175)
+        Container.CanvasSize = UDim2.new(0, 0, 0, 235)
         Container.ScrollBarThickness = 3
 
         local UIList = Instance.new("UIListLayout", Container)
@@ -407,6 +407,40 @@ task.delay(7.0, function()
                 loadstring(game:HttpGet("https://raw.githubusercontent.com/raw-roblox/PrivateServerBypass/refs/heads/main/lua"))()
                 BypassExecBtn.Text = "Bypassed!"
                 BypassExecBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 60)
+            end)
+        end)
+
+        -- TARJETA 4: LENNON FARM AFK
+        local LennonCard = Instance.new("Frame", Container)
+        LennonCard.Size = UDim2.new(1, 0, 0, 50)
+        LennonCard.BackgroundColor3 = Color3.fromRGB(38, 20, 28)
+        Instance.new("UICorner", LennonCard).CornerRadius = UDim.new(0, 6)
+
+        local LennonLabel = Instance.new("TextLabel", LennonCard)
+        LennonLabel.Size = UDim2.new(0.6, 0, 1, 0)
+        LennonLabel.Position = UDim2.new(0.04, 0, 0, 0)
+        LennonLabel.BackgroundTransparency = 1
+        LennonLabel.Text = "Lennon Farm AFK"
+        LennonLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        LennonLabel.Font = Enum.Font.GothamBold
+        LennonLabel.TextSize = 11
+        LennonLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+        local LennonExecBtn = Instance.new("TextButton", LennonCard)
+        LennonExecBtn.Size = UDim2.new(0.34, 0, 0.7, 0)
+        LennonExecBtn.Position = UDim2.new(0.62, 0, 0.15, 0)
+        LennonExecBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 110)
+        LennonExecBtn.Text = "Farm AFK"
+        LennonExecBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        LennonExecBtn.Font = Enum.Font.GothamBold
+        LennonExecBtn.TextSize = 11
+        Instance.new("UICorner", LennonExecBtn).CornerRadius = UDim.new(0, 5)
+
+        LennonExecBtn.MouseButton1Click:Connect(function()
+            pcall(function()
+                loadstring(game:HttpGet("https://raw.githubusercontent.com/lennonxscripts/lennonfarmv2/refs/heads/main/stealanegg"))()
+                LennonExecBtn.Text = "Farming!"
+                LennonExecBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 60)
             end)
         end)
     end)
