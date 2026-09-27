@@ -1,5 +1,5 @@
 -- ==============================================================================
---  PXZD HUB PRO | DEFINITIVO CON NUEVO BYPASS, BURBUJAS FADE Y BOTÓN MÓVIBLE
+--  PXZD HUB PRO | INTRO, BURBUJAS CON FADE, BOTÓN MÓVIBLE Y 3 FUNCIONES COMPLETAS
 -- ==============================================================================
 
 local Players = game:GetService("Players")
@@ -208,7 +208,7 @@ task.delay(7.0, function()
         ScreenGui.Name = "PXZD_MainGui"
         ScreenGui.ResetOnSpawn = false
 
-        -- Botón flotante lateral (MÓVIBLE)
+        -- Botón flotante lateral (MÓVIBLE / DRAGGABLE)
         local ToggleBtn = Instance.new("ImageButton", ScreenGui)
         ToggleBtn.Size = UDim2.new(0, 48, 0, 48)
         ToggleBtn.Position = UDim2.new(0, 15, 0.35, 0)
@@ -225,8 +225,8 @@ task.delay(7.0, function()
 
         -- Marco principal CENTRADO
         local Main = Instance.new("Frame", ScreenGui)
-        Main.Size = UDim2.new(0, 310, 0, 245)
-        Main.Position = UDim2.new(0.5, -155, 0.5, -122.5)
+        Main.Size = UDim2.new(0, 310, 0, 255)
+        Main.Position = UDim2.new(0.5, -155, 0.5, -127.5)
         Main.BackgroundColor3 = Color3.fromRGB(15, 15, 22)
         Main.BorderSizePixel = 0
         Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 12)
@@ -286,8 +286,8 @@ task.delay(7.0, function()
         CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 
         local Container = Instance.new("ScrollingFrame", Main)
-        Container.Size = UDim2.new(0.92, 0, 0, 185)
-        Container.Position = UDim2.new(0.04, 0, 0.2, 0)
+        Container.Size = UDim2.new(0.92, 0, 0, 195)
+        Container.Position = UDim2.new(0.04, 0, 0.18, 0)
         Container.BackgroundTransparency = 1
         Container.CanvasSize = UDim2.new(0, 0, 0, 175)
         Container.ScrollBarThickness = 3
@@ -296,38 +296,37 @@ task.delay(7.0, function()
         UIList.SortOrder = Enum.SortOrder.LayoutOrder
         UIList.Padding = UDim.new(0, 8)
 
-        -- TARJETA 1: HORIZON HUB
-        local HorizonCard = Instance.new("Frame", Container)
-        HorizonCard.Size = UDim2.new(1, 0, 0, 50)
-        HorizonCard.BackgroundColor3 = Color3.fromRGB(28, 20, 38)
-        Instance.new("UICorner", HorizonCard).CornerRadius = UDim.new(0, 6)
+        -- TARJETA 1: VIREX HUB
+        local VirexCard = Instance.new("Frame", Container)
+        VirexCard.Size = UDim2.new(1, 0, 0, 50)
+        VirexCard.BackgroundColor3 = Color3.fromRGB(28, 20, 38)
+        Instance.new("UICorner", VirexCard).CornerRadius = UDim.new(0, 6)
 
-        local HorizonLabel = Instance.new("TextLabel", HorizonCard)
-        HorizonLabel.Size = UDim2.new(0.6, 0, 1, 0)
-        HorizonLabel.Position = UDim2.new(0.04, 0, 0, 0)
-        HorizonLabel.BackgroundTransparency = 1
-        HorizonLabel.Text = "Horizon Hub Anti Guard"
-        HorizonLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-        HorizonLabel.Font = Enum.Font.GothamBold
-        HorizonLabel.TextSize = 11
-        HorizonLabel.TextXAlignment = Enum.TextXAlignment.Left
+        local VirexLabel = Instance.new("TextLabel", VirexCard)
+        VirexLabel.Size = UDim2.new(0.6, 0, 1, 0)
+        VirexLabel.Position = UDim2.new(0.04, 0, 0, 0)
+        VirexLabel.BackgroundTransparency = 1
+        VirexLabel.Text = "VIREX Hub"
+        VirexLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        VirexLabel.Font = Enum.Font.GothamBold
+        VirexLabel.TextSize = 11
+        VirexLabel.TextXAlignment = Enum.TextXAlignment.Left
 
-        local HorizonExecBtn = Instance.new("TextButton", HorizonCard)
-        HorizonExecBtn.Size = UDim2.new(0.34, 0, 0.7, 0)
-        HorizonExecBtn.Position = UDim2.new(0.62, 0, 0.15, 0)
-        HorizonExecBtn.BackgroundColor3 = Color3.fromRGB(230, 110, 10)
-        HorizonExecBtn.Text = "Execute"
-        HorizonExecBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-        HorizonExecBtn.Font = Enum.Font.GothamBold
-        HorizonExecBtn.TextSize = 11
-        Instance.new("UICorner", HorizonExecBtn).CornerRadius = UDim.new(0, 5)
+        local VirexExecBtn = Instance.new("TextButton", VirexCard)
+        VirexExecBtn.Size = UDim2.new(0.34, 0, 0.7, 0)
+        VirexExecBtn.Position = UDim2.new(0.62, 0, 0.15, 0)
+        VirexExecBtn.BackgroundColor3 = Color3.fromRGB(230, 110, 10)
+        VirexExecBtn.Text = "Execute"
+        VirexExecBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        VirexExecBtn.Font = Enum.Font.GothamBold
+        VirexExecBtn.TextSize = 11
+        Instance.new("UICorner", VirexExecBtn).CornerRadius = UDim.new(0, 5)
 
-        HorizonExecBtn.MouseButton1Click:Connect(function()
+        VirexExecBtn.MouseButton1Click:Connect(function()
             pcall(function()
-                getgenv().script_key = "Trial"
-                loadstring(game:HttpGet("https://api.getpolsec.com/scripts/hosted/6582551b42d21c6b7eb55f1d76d8d50ce53cb35592093d6615b5e83437594dc0.lua"))()
-                HorizonExecBtn.Text = "Executed!"
-                HorizonExecBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 60)
+                loadstring(game:HttpGet("https://gist.githubusercontent.com/virexx55/836653079c73281295d6bfb5c10be5d9/raw/128b0220c9a36354b5c6504c3669f328e5354805/virex.lua"))()
+                VirexExecBtn.Text = "Executed!"
+                VirexExecBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 60)
             end)
         end)
 
@@ -377,7 +376,7 @@ task.delay(7.0, function()
             end)
         end)
 
-        -- TARJETA 3: SERVER BYPASS (ACTUALIZADO CON TU NUEVO SCRIPT)
+        -- TARJETA 3: SERVER BYPASS
         local BypassCard = Instance.new("Frame", Container)
         BypassCard.Size = UDim2.new(1, 0, 0, 50)
         BypassCard.BackgroundColor3 = Color3.fromRGB(20, 28, 38)
