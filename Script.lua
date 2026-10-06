@@ -1,265 +1,652 @@
--- ==============================================================================
---  PXZD HUB PRO | INTRO LIMPIA (SOLO IMAGEN 3S) + MÚSICA 6S + 6 FUNCIONES
--- ==============================================================================
+-- Pxzd hub | Instant TP
+-- Pick a pet (icon + value), press Steal: taken and delivered with the Instant TP logic only.
 
 local Players = game:GetService("Players")
-local CoreGui = game:GetService("CoreGui")
-local UserInputService = game:GetService("UserInputService")
-local SoundService = game:GetService("SoundService")
-local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui")
+local TweenService = game:GetService("TweenService")
+local SoundService = game:GetService("SoundService")
+local localPlayer = Players.LocalPlayer
 
-local LocalPlayer = Players.LocalPlayer
-if not LocalPlayer then return end
-
-local GuiParent = (pcall(function() return CoreGui end) and CoreGui) or LocalPlayer:WaitForChild("PlayerGui")
-
--- FUNCIÓN DE ARRASTRE UNIVERSAL
-local function MakeDraggable(frame, handle)
-    pcall(function()
-        handle = handle or frame
-        local dragging, dragInput, startPos, dragStart
-        handle.InputBegan:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                dragging = true; dragStart = input.Position; startPos = frame.Position
-                input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then dragging = false end end)
-            end
-        end)
-        handle.InputChanged:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
-        end)
-        UserInputService.InputChanged:Connect(function(input)
-            if input == dragInput and dragging then
-                local delta = input.Position - dragStart
-                frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-            end
-        end)
-    end)
+------------------------------------------------------------------ settings (same values as the hub)
+local CFG = {
+	SpeedCap = 1.15, -- never above 115% of the walk speed
+	HopRatio = 1.515, -- hop distance = walk speed * ratio (a distance, not a speed)
+	HopMin = 40,
+	HopGap = 0.06, -- seconds between two hops (learned: grows after a pull-back, shrinks after a clean hop)
+	HopGapMin = 0.06,
+	HopGapMax = 0.2,
+	HopRetries = 6,
+	HopLift = 42, -- height of the hops above the start
+	LandOffset = 14, -- landing spot in front of the line
+	LandSettle = 0.08,
+	DropDelay = 0.05,
+	GrabInterval = 0.03,
+	RegrabFar = 40, -- egg further than this: teleport onto it, otherwise run to it
+	Height = 70, -- the safe-zone run starts above the base and comes down (same as the hub)
+	ClimbShare = 0.5,
+	CarryRatio = 0.9,
+	EasyRatio = 1.3,
+}
+------------------------------------------------------------------ game handles
+local function safeRequire(getter)
+	local ok, result = pcall(function()
+		return require(getter())
+	end)
+	return ok and result or nil
 end
 
--- 1. INTRO (SOLO TU IMAGEN FLOTANTE SIN FONDO - 3 SEGUNDOS + MÚSICA 6S CON FADE)
+local networkingFolder = ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Networking")
+local EggState = safeRequire(function() return ReplicatedStorage.Client.EggState end)
+local Assets = safeRequire(function() return ReplicatedStorage.Data.Assets end)
+local Mutations = safeRequire(function() return ReplicatedStorage.Shared.Modules.Mutations end)
+
+local function remote(name)
+	return networkingFolder:FindFirstChild(name)
+end
+
+local function root()
+	local character = localPlayer.Character
+	return character and character:FindFirstChild("HumanoidRootPart")
+end
+
+-- "Humanoid Swap" (the hub's default shield, always on in the hub): the character runs on a copy of its humanoid,
+-- the original is kept out of the character while we steal. Same code path as the hub.
+local shield = { Original = nil, Clone = nil, Links = {}, Connection = nil, Added = nil }
+
+local function walkSpeed()
+	local character = localPlayer.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	local speed = humanoid and humanoid.WalkSpeed or 16
+	if shield.Original and shield.Original.Health > 0 then
+		speed = math.min(speed, shield.Original.WalkSpeed)
+	end
+	local ok, result = pcall(function()
+		local stat = localPlayer:FindFirstChild("leaderstats")
+		stat = stat and stat:FindFirstChild("Speed")
+		local util = require(ReplicatedStorage.Shared.Util.TreadmillUtil)
+		return stat and util.SpeedPowerToWalkSpeed(stat.Value) or nil
+	end)
+	if ok and type(result) == "number" and result > 0 then
+		speed = math.min(speed, result)
+	end
+	return speed
+end
+
+local function shieldControls(humanoid)
+	pcall(function()
+		local scripts = localPlayer:FindFirstChild("PlayerScripts")
+		local module = scripts and scripts:FindFirstChild("PlayerModule")
+		if module then
+			local controls = require(module):GetControls()
+			if type(controls) == "table" then
+				controls.humanoid = humanoid
+			end
+		end
+	end)
+end
+
+local function shieldAnimate(character)
+	local animate = character and character:FindFirstChild("Animate")
+	if animate and animate:IsA("LocalScript") then
+		task.spawn(function()
+			animate.Enabled = false
+			task.wait()
+			animate.Enabled = true
+		end)
+	end
+end
+
+local function shieldUnlink()
+	for _, link in ipairs(shield.Links) do
+		pcall(function()
+			link:Disconnect()
+		end)
+	end
+	table.clear(shield.Links)
+end
+
+local groundedStates = {
+	[Enum.HumanoidStateType.Running] = true,
+	[Enum.HumanoidStateType.RunningNoPhysics] = true,
+	[Enum.HumanoidStateType.Landed] = true,
+}
+
+local function grounded(humanoid)
+	if not humanoid or humanoid.Health <= 0 or humanoid.FloorMaterial == Enum.Material.Air then
+		return false
+	end
+	return groundedStates[humanoid:GetState()] == true
+end
+
+local function shieldSwap()
+	local character = localPlayer.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	if not humanoid or humanoid.Health <= 0 then
+		return
+	end
+	if shield.Clone and shield.Clone.Parent == character then
+		return
+	end
+	if not grounded(humanoid) then
+		return
+	end
+
+	local clone = humanoid:Clone()
+	humanoid.Parent = nil
+	clone.Parent = character
+	workspace.CurrentCamera.CameraSubject = clone
+	shieldControls(clone)
+	shieldAnimate(character)
+	shield.Original = humanoid
+	shield.Clone = clone
+
+	table.insert(shield.Links, humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
+		if clone.Parent ~= nil then
+			clone.WalkSpeed = humanoid.WalkSpeed
+		end
+	end))
+
+	local animator = humanoid:FindFirstChildOfClass("Animator")
+	local animator2 = clone:FindFirstChildOfClass("Animator")
+	if animator and animator2 then
+		table.insert(shield.Links, animator.AnimationPlayed:Connect(function(played)
+			local animation = played.Animation
+			if not animation or clone.Parent == nil then
+				return
+			end
+			local ok, track = pcall(function()
+				return animator2:LoadAnimation(animation)
+			end)
+			if not ok or not track then
+				return
+			end
+			pcall(function()
+				track.Priority = played.Priority
+				track.Looped = played.Looped
+				track:Play(0.05, math.max(played.WeightTarget, 0.01), played.Speed)
+			end)
+			local stopped
+			stopped = played.Stopped:Connect(function()
+				stopped:Disconnect()
+				pcall(function()
+					track:Stop(0.1)
+				end)
+			end)
+		end))
+	end
+
+	table.insert(shield.Links, clone.Died:Connect(function()
+		shieldUnlink()
+		shield.Original, shield.Clone = nil, nil
+		local current = localPlayer.Character
+		if current and humanoid.Parent == nil then
+			humanoid.Parent = current
+			workspace.CurrentCamera.CameraSubject = humanoid
+			shieldControls(humanoid)
+		end
+		pcall(function()
+			clone:Destroy()
+		end)
+		humanoid.Health = 0
+	end))
+end
+
+local function shieldUndo()
+	shieldUnlink()
+	local character = localPlayer.Character
+	local original, clone = shield.Original, shield.Clone
+	shield.Original, shield.Clone = nil, nil
+	if original and clone and character and original.Parent == nil and clone.Parent == character then
+		original.Parent = character
+		workspace.CurrentCamera.CameraSubject = original
+		shieldControls(original)
+		pcall(function()
+			clone:Destroy()
+		end)
+		shieldAnimate(character)
+	end
+end
+
+local function shieldStart()
+	shieldSwap()
+	local n = 0
+	shield.Connection = RunService.Heartbeat:Connect(function(dt)
+		n += dt
+		local character = localPlayer.Character
+		local missing = not (shield.Clone and character and shield.Clone.Parent == character)
+		if (missing and 0.25 or 3) <= n then
+			n = 0
+			shieldSwap()
+		end
+	end)
+	shield.Added = localPlayer.CharacterAdded:Connect(function(character)
+		shieldUnlink()
+		shield.Original, shield.Clone = nil, nil
+		task.spawn(function()
+			character:WaitForChild("Humanoid", 10)
+			task.wait(1)
+			if shield.Connection and localPlayer.Character == character then
+				shieldSwap()
+			end
+		end)
+	end)
+end
+
+local function shieldStop()
+	if shield.Connection then
+		shield.Connection:Disconnect()
+		shield.Connection = nil
+	end
+	if shield.Added then
+		shield.Added:Disconnect()
+		shield.Added = nil
+	end
+	shieldUndo()
+end
+
+------------------------------------------------------------------ carry / delivery state
+local state = { Carrying = false, Uid = nil, Delivered = 0, Busy = false, Cancel = false, Mult = 1, PulledAt = 0, HeldSeen = 0, GuessedDrop = false }
+
+if type(EggState) == "table" and type(EggState.CarryChanged) == "table" and type(EggState.CarryChanged.Connect) == "function" then
+	EggState.CarryChanged:Connect(function(arg)
+		local carrying = type(arg) == "table" and arg.IsCarrying == true
+		if carrying and arg.GuardDisabled == true then
+			carrying = false
+		end
+		state.GuessedDrop = false
+		if carrying then
+			state.HeldSeen = os.clock()
+		end
+		if carrying and type(arg.Uid) == "string" then
+			state.Uid = arg.Uid
+			local mult = tonumber(arg.SpeedMultiplier)
+			if mult and mult > 0 then
+				state.Mult = mult
+			end
+		end
+		state.Carrying = carrying
+	end)
+end
+
 pcall(function()
-    if GuiParent:FindFirstChild("PXZD_IntroGui") then GuiParent.PXZD_IntroGui:Destroy() end
-
-    -- Música de fondo (6 segundos con desvanecimiento)
-    local introSound = Instance.new("Sound", SoundService)
-    introSound.SoundId = "rbxassetid://71251641989884"
-    introSound.Volume = 0.3
-    introSound.TimePosition = 18
-    introSound:Play()
-
-    task.spawn(function()
-        task.wait(4.5) -- Empieza a bajar el volumen antes de los 6s
-        if introSound and introSound.Parent then
-            for i = 30, 0, -1 do
-                if not introSound or not introSound.Parent then break end
-                introSound.Volume = i / 100
-                task.wait(0.05)
-            end
-            introSound:Destroy()
-        end
-    end)
-
-    local IntroGui = Instance.new("ScreenGui", GuiParent)
-    IntroGui.Name = "PXZD_IntroGui"
-    IntroGui.ResetOnSpawn = false
-
-    -- Imagen sola, centrada y sin fondo negro
-    local PureLogo = Instance.new("ImageLabel", IntroGui)
-    PureLogo.Size = UDim2.new(0, 130, 0, 130)
-    PureLogo.Position = UDim2.new(0.5, -65, 0.5, -65)
-    PureLogo.BackgroundTransparency = 1
-    PureLogo.Image = "rbxassetid://108485396062507"
-    PureLogo.ImageTransparency = 0
-    Instance.new("UICorner", PureLogo).CornerRadius = UDim.new(1, 0)
-
-    -- Animación de arcoíris en el borde de tu imagen durante la intro
-    local LogoStroke = Instance.new("UIStroke", PureLogo)
-    LogoStroke.Thickness = 3
-    LogoStroke.Color = Color3.fromRGB(0, 255, 100)
-
-    task.spawn(function()
-        local t = 0
-        local conn
-        conn = RunService.RenderStepped:Connect(function(dt)
-            t = t + dt * 0.3
-            LogoStroke.Color = Color3.fromHSV(t % 1, 0.8, 1)
-        end)
-
-        -- Mantener 2 segundos visibles y 1 segundo de desvanecimiento (Total 3s)
-        task.wait(2.0)
-        for i = 0, 1, 0.1 do
-            if not PureLogo.Parent then break end
-            PureLogo.ImageTransparency = i
-            LogoStroke.Transparency = i
-            task.wait(0.1)
-        end
-
-        if conn then conn:Disconnect() end
-        IntroGui:Destroy()
-    end)
+	remote("RE/EggWorld/FieldEggRedeemVerdict").OnClientEvent:Connect(function()
+		state.Delivered = os.clock()
+	end)
 end)
 
--- 2. INTERFAZ PRINCIPAL (APARECE AL TERMINAR LA INTRO)
-task.delay(3.0, function()
-    pcall(function()
-        if GuiParent:FindFirstChild("PXZD_MainGui") then GuiParent.PXZD_MainGui:Destroy() end
-
-        local ScreenGui = Instance.new("ScreenGui", GuiParent)
-        ScreenGui.Name = "PXZD_MainGui"
-        ScreenGui.ResetOnSpawn = false
-
-        -- BOTÓN FLOTANTE MÓVIBLE
-        local ToggleBtn = Instance.new("ImageButton", ScreenGui)
-        ToggleBtn.Size = UDim2.new(0, 48, 0, 48)
-        ToggleBtn.Position = UDim2.new(0, 15, 0.35, 0)
-        ToggleBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 22)
-        ToggleBtn.Image = "rbxassetid://108485396062507"
-        ToggleBtn.AutoButtonColor = false
-        Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(1, 0)
-        
-        local ToggleStroke = Instance.new("UIStroke", ToggleBtn)
-        ToggleStroke.Thickness = 3
-        ToggleStroke.Color = Color3.fromRGB(0, 255, 100)
-        MakeDraggable(ToggleBtn, ToggleBtn)
-
-        -- MARCO PRINCIPAL
-        local Main = Instance.new("Frame", ScreenGui)
-        Main.Size = UDim2.new(0, 310, 0, 295)
-        Main.Position = UDim2.new(0.5, -155, 0.5, -147.5)
-        Main.BackgroundColor3 = Color3.fromRGB(15, 15, 22)
-        Main.BorderSizePixel = 0
-        Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 12)
-
-        local MainStroke = Instance.new("UIStroke", Main)
-        MainStroke.Thickness = 3
-        MainStroke.Color = Color3.fromRGB(0, 255, 100)
-        MakeDraggable(Main, Main)
-
-        ToggleBtn.MouseButton1Click:Connect(function()
-            Main.Visible = not Main.Visible
-        end)
-
-        -- ARCOÍRIS SUAVE CONTINUO
-        task.spawn(function()
-            local t = 0
-            while ScreenGui.Parent do
-                t = t + 0.03
-                local rainbow = Color3.fromHSV((t * 0.2) % 1, 0.8, 1)
-                MainStroke.Color = rainbow
-                ToggleStroke.Color = rainbow
-                task.wait(0.04)
-            end
-        end)
-
-        -- HEADER
-        local Header = Instance.new("Frame", Main)
-        Header.Size = UDim2.new(1, 0, 0, 38)
-        Header.BackgroundTransparency = 1
-
-        local Title = Instance.new("TextLabel", Header)
-        Title.Size = UDim2.new(1, -40, 1, 0)
-        Title.Position = UDim2.new(0, 12, 0, 0)
-        Title.BackgroundTransparency = 1
-        Title.Text = "⚡ PXZD HUB | 👑 CHEMA 👑"
-        Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-        Title.Font = Enum.Font.GothamBlack
-        Title.TextSize = 11
-        Title.TextXAlignment = Enum.TextXAlignment.Left
-
-        local CloseBtn = Instance.new("TextButton", Header)
-        CloseBtn.Size = UDim2.new(0, 22, 0, 22)
-        CloseBtn.Position = UDim2.new(1, -30, 0, 8)
-        CloseBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
-        CloseBtn.Text = "✕"
-        CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-        CloseBtn.Font = Enum.Font.GothamBold
-        CloseBtn.TextSize = 10
-        Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 6)
-        CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
-
-        -- CONTENEDOR DE OPCIONES
-        local Container = Instance.new("ScrollingFrame", Main)
-        Container.Size = UDim2.new(0.92, 0, 0, 235)
-        Container.Position = UDim2.new(0.04, 0, 0.17, 0)
-        Container.BackgroundTransparency = 1
-        Container.CanvasSize = UDim2.new(0, 0, 0, 355)
-        Container.ScrollBarThickness = 3
-
-        local UIList = Instance.new("UIListLayout", Container)
-        UIList.SortOrder = Enum.SortOrder.LayoutOrder
-        UIList.Padding = UDim.new(0, 8)
-
-        local function CreateButtonCard(name, bgColor, btnColor, btnText, callback)
-            local Card = Instance.new("Frame", Container)
-            Card.Size = UDim2.new(1, 0, 0, 50)
-            Card.BackgroundColor3 = bgColor
-            Instance.new("UICorner", Card).CornerRadius = UDim.new(0, 6)
-
-            local Label = Instance.new("TextLabel", Card)
-            Label.Size = UDim2.new(0.6, 0, 1, 0)
-            Label.Position = UDim2.new(0.04, 0, 0, 0)
-            Label.BackgroundTransparency = 1
-            Label.Text = name
-            Label.TextColor3 = Color3.fromRGB(255, 255, 255)
-            Label.Font = Enum.Font.GothamBold
-            Label.TextSize = 11
-            Label.TextXAlignment = Enum.TextXAlignment.Left
-
-            local ExecBtn = Instance.new("TextButton", Card)
-            ExecBtn.Size = UDim2.new(0.34, 0, 0.7, 0)
-            ExecBtn.Position = UDim2.new(0.62, 0, 0.15, 0)
-            ExecBtn.BackgroundColor3 = btnColor
-            ExecBtn.Text = btnText
-            ExecBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-            ExecBtn.Font = Enum.Font.GothamBold
-            ExecBtn.TextSize = 11
-            Instance.new("UICorner", ExecBtn).CornerRadius = UDim.new(0, 5)
-
-            ExecBtn.MouseButton1Click:Connect(function()
-                pcall(function()
-                    callback()
-                    ExecBtn.Text = "Ready!"
-                    ExecBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 60)
-                end)
-            end)
-        end
-
-        -- 1. VIREX HUB
-        CreateButtonCard("VIREX Hub", Color3.fromRGB(28, 20, 38), Color3.fromRGB(230, 110, 10), "Execute", function()
-            loadstring(game:HttpGet("https://gist.githubusercontent.com/virexx55/836653079c73281295d6bfb5c10be5d9/raw/128b0220c9a36354b5c6504c3669f328e5354805/virex.lua"))()
-        end)
-
-        -- 2. MODO PATATA ULTRA
-        CreateButtonCard("Modo Patata Ultra", Color3.fromRGB(28, 28, 20), Color3.fromRGB(180, 130, 20), "Active", function()
-            for _, v in pairs(Workspace:GetDescendants()) do
-                if v:IsA("BasePart") then
-                    v.Material = Enum.Material.SmoothPlastic
-                    v.Reflectance = 0
-                elseif v:IsA("Decal") or v:IsA("Texture") then
-                    v:Destroy()
-                end
-            end
-        end)
-
-        -- 3. SERVER BYPASS
-        CreateButtonCard("Server Bypass", Color3.fromRGB(20, 28, 38), Color3.fromRGB(40, 110, 180), "Bypass", function()
-            loadstring(game:HttpGet("https://raw.githubusercontent.com/raw-roblox/PrivateServerBypass/refs/heads/main/lua"))()
-        end)
-
-        -- 4. LENNON FARM AFK
-        CreateButtonCard("Lennon Farm AFK", Color3.fromRGB(38, 20, 28), Color3.fromRGB(180, 40, 110), "Farm AFK", function()
-            loadstring(game:HttpGet("https://raw.githubusercontent.com/lennonxscripts/lennonfarmv2/refs/heads/main/stealanegg"))()
-        end)
-
-        -- 5. CHILLI HUB
-        CreateButtonCard("Chilli Hub", Color3.fromRGB(38, 25, 20), Color3.fromRGB(200, 60, 20), "Execute", function()
-            loadstring(game:HttpGet("https://raw.githubusercontent.com/tienkhanh1/spicy/main/Chilli.lua"))()
-        end)
-
-        -- 6. MIRANDA HUB
-        CreateButtonCard("Miranda Hub", Color3.fromRGB(25, 20, 38), Color3.fromRGB(130, 40, 200), "Execute", function()
-            loadstring(game:HttpGet("https://raw.githubusercontent.com/miirandahub/loader/refs/heads/main/stealeggies"))()
-        end)
-    end)
+-- the server pulling us back ("Relocate") is noted so the hop is simply repeated
+pcall(function()
+	remote("RE/RigSync/Refresh").OnClientEvent:Connect(function(arg)
+		if type(arg) == "table" and arg.Action == "Relocate" then
+			state.PulledAt = os.clock()
+		end
+	end)
 end)
+
+local function takeEgg(uid)
+	if type(uid) == "string" and type(EggState) == "table" and type(EggState.CarryFieldEgg) == "function" then
+		pcall(EggState.CarryFieldEgg, uid)
+	end
+end
+
+local function dropEgg()
+	if type(EggState) == "table" and type(EggState.DropFieldEgg) == "function" then
+		pcall(EggState.DropFieldEgg, "PlayerRequest")
+	end
+end
+
+-- the prompt of the egg itself (nearest egg prompt to the egg's position), never one of another egg
+local function promptNear(position, radius)
+	local best, bestDistance = nil, radius
+	for _, child in ipairs(workspace:GetChildren()) do
+		if child.Name == "SmartPromptPart" and child:IsA("BasePart") then
+			local prompt = child:FindFirstChild("CarryAreaEgg")
+			if prompt and prompt:IsA("ProximityPrompt") then
+				local distance = (child.Position - position).Magnitude
+				if distance < bestDistance then
+					best, bestDistance = prompt, distance
+				end
+			end
+		end
+	end
+	return best
+end
+
+-- the carried egg is welded to the character: used to catch a missed carry signal (same check as the hub)
+local function heldByMe(uid)
+	local character = localPlayer.Character
+	if type(uid) ~= "string" or not character then
+		return false
+	end
+	local egg = workspace:FindFirstChild(uid)
+	if not egg then
+		return false
+	end
+	for _, d in ipairs(egg:GetDescendants()) do
+		if d:IsA("WeldConstraint") or d:IsA("JointInstance") then
+			local ok, a, b = pcall(function()
+				return d.Part0, d.Part1
+			end)
+			if ok and ((a and a:IsDescendantOf(character)) or (b and b:IsDescendantOf(character))) then
+				return true
+			end
+		end
+	end
+	return false
+end
+
+task.spawn(function()
+	while true do
+		task.wait(0.2)
+		if not state.Carrying then
+			if state.GuessedDrop and heldByMe(state.Uid) then
+				state.GuessedDrop, state.Carrying, state.HeldSeen = false, true, os.clock()
+			end
+		elseif heldByMe(state.Uid) then
+			state.HeldSeen = os.clock()
+		elseif os.clock() - state.HeldSeen > 0.8 then
+			state.Carrying, state.GuessedDrop = false, true
+		end
+	end
+end)
+
+local function snapshot()
+	local list = {}
+	local ok, result = pcall(function()
+		return remote("RF/EggWorld/AskFieldEggSnapshot"):InvokeServer()
+	end)
+	local records = ok and type(result) == "table" and result.Records or nil
+	if type(records) ~= "table" then
+		return list
+	end
+	for _, record in pairs(records) do
+		if type(record) == "table" and type(record.Uid) == "string" and (record.State == "Slot" or record.State == "Dropped") and typeof(record.BottomCFrame) == "CFrame" then
+			list[#list + 1] = record
+		end
+	end
+	return list
+end
+
+local function eggPosition(uid)
+	for _, record in ipairs(snapshot()) do
+		if record.Uid == uid then
+			return record.BottomCFrame.Position
+		end
+	end
+	return nil
+end
+
+------------------------------------------------------------------ egg info for the list (icon, name, value)
+local function describe(record)
+	local directory = type(Assets) == "table" and Assets.Directory or nil
+	local entry = type(directory) == "table" and directory[tostring(record.AssetCategory)] or nil
+	local info = { Uid = record.Uid, Category = tostring(record.AssetCategory), Name = tostring(record.AssetCategory), Icon = "", Rarity = 0, Value = 0 }
+
+	if type(entry) == "table" then
+		info.Name = tostring(entry.DisplayName or record.AssetCategory)
+		local icon = entry.Icon
+		if icon ~= nil and tostring(icon) ~= "" then
+			icon = tostring(icon)
+			info.Icon = tonumber(icon) and ("rbxassetid://" .. icon) or icon
+		end
+		if type(entry.Rarity) == "table" then
+			info.Rarity = tonumber(entry.Rarity.RarityNumber or entry.Rarity.Rank) or 0
+		end
+
+		local scale = tonumber(record.AssetScale) or 1
+		local factor = scale > 5 and (scale / 5) ^ 1.2 * 19.637875755794113 or scale ^ 1.85
+		local mutation = 1
+		if type(Mutations) == "table" and type(Mutations.EarningsFor) == "function" then
+			local okM, resM = pcall(Mutations.EarningsFor, type(record.Mutations) == "table" and record.Mutations or {})
+			if okM and type(resM) == "number" then
+				mutation = resM
+			end
+		end
+		info.Value = (tonumber(entry.EarningRate) or 0) * factor * mutation
+	end
+
+	return info
+end
+
+local function money(value)
+	local units = { { 1e12, "T" }, { 1e9, "B" }, { 1e6, "M" }, { 1e3, "K" } }
+	for _, u in ipairs(units) do
+		if value >= u[1] then
+			return string.format("$%.2f%s/s", value / u[1], u[2])
+		end
+	end
+	return string.format("$%d/s", math.floor(value + 0.5))
+end
+
+------------------------------------------------------------------ Instant TP logic
+local status = function(text) end
+
+local function frozenCamera()
+	local camera = workspace.CurrentCamera
+	if not camera then
+		return function() end
+	end
+	local oldType = camera.CameraType
+	local frame = camera.CFrame
+	pcall(function()
+		camera.CameraType = Enum.CameraType.Scriptable
+		camera.CFrame = frame
+	end)
+	return function()
+		pcall(function()
+			camera.CameraType = oldType
+		end)
+	end
+end
+
+-- a still copy of the player stays where the egg was taken during the flight; removed on arrival
+local stealClone = nil
+local function dropClone()
+	local copy = stealClone
+	stealClone = nil
+	if copy then
+		pcall(function()
+			copy:Destroy()
+		end)
+	end
+end
+
+local function postClone()
+	dropClone()
+	local character = localPlayer.Character
+	if not character then
+		return
+	end
+	local was = character.Archivable
+	character.Archivable = true
+	local copy = character:Clone()
+	character.Archivable = was
+	if copy then
+		for _, d in ipairs(copy:GetDescendants()) do
+			if d:IsA("LuaSourceContainer") or d:IsA("Humanoid") then
+				pcall(function()
+					d:Destroy()
+				end)
+			elseif d:IsA("BasePart") then
+				d.Anchored = true
+				d.CanCollide = false
+				d.CanTouch = false
+				d.CanQuery = false
+			end
+		end
+		copy.Name = "Clone"
+		copy.Parent = workspace
+		stealClone = copy
+	end
+end
+
+local function lineInfo()
+	local world = workspace:FindFirstChild("World") or workspace:FindFirstChild("__OBJECTS")
+	world = world and world:FindFirstChild("Areas")
+	world = world and world:FindFirstChild("SeparationLine")
+	local ok = world and world:IsA("BasePart")
+	return ok and world.Position.X or 552.2, ok and world.Position.Y or 67.67
+end
+
+local function homePoint()
+	for _, def in ipairs({
+		{ { "GearGiver_Slap", "Podium" }, Vector3.new(-16.415, 21.072, -6.106) },
+		{ { "World", "Machines", "RiftMachine", "Rift", "Meshes/VoidPortal_Cube.003" }, Vector3.new(-26.776, 1.75, 18.665) },
+		{ { "__OBJECTS", "Machines", "RiftMachine", "Rift", "Meshes/VoidPortal_Cube.003" }, Vector3.new(-26.776, 1.75, 18.665) },
+	}) do
+		local node = workspace
+		for _, name in ipairs(def[1]) do
+			node = node and node:FindFirstChild(name) or nil
+		end
+		if node and node:IsA("BasePart") then
+			return node.CFrame:PointToWorldSpace(def[2])
+		end
+	end
+	return Vector3.new(528.7, 70.57, -364.11)
+end
+
+local function place(position)
+	local r = root()
+	if not r then
+		return
+	end
+	pcall(function()
+		r.CFrame = CFrame.new(position) * CFrame.Angles(0, math.rad(90), 0)
+		r.AssemblyLinearVelocity = Vector3.zero
+		r.AssemblyAngularVelocity = Vector3.zero
+	end)
+end
+
+-- portals / arenas / teleporters are walked around (same list as the hub)
+local dangerCache, dangerAt = {}, 0
+local function dangers()
+	if os.clock() - dangerAt < 1 then
+		return dangerCache
+	end
+	dangerAt = os.clock()
+	local list = {}
+	local function add(inst)
+		local ok, cf, size = pcall(function()
+			if inst:IsA("Model") then
+				return inst:GetBoundingBox()
+			elseif inst:IsA("BasePart") then
+				return inst.CFrame, inst.Size
+			end
+		end)
+		if ok and cf and size then
+			local half = Vector3.new(math.abs(size.X), 0, math.abs(size.Z)) * 0.5
+			local rot = (cf - cf.Position):VectorToWorldSpace(half)
+			local rx = math.max(math.abs(rot.X), half.X, half.Z)
+			local rz = math.max(math.abs(rot.Z), half.X, half.Z)
+			list[#list + 1] = { MinX = cf.Position.X - rx, MaxX = cf.Position.X + rx, MinZ = cf.Position.Z - rz, MaxZ = cf.Position.Z + rz }
+		end
+	end
+	local function bad(name)
+		if name == "ScrambleLocalVisuals" or name == "DrScrambleEvent" then
+			return false
+		end
+		name = string.lower(name)
+		return string.find(name, "portal", 1, true) or string.find(name, "teleport", 1, true) or string.find(name, "mech", 1, true) or string.find(name, "arena", 1, true) or string.find(name, "scramble", 1, true)
+	end
+	for _, child in ipairs(workspace:GetChildren()) do
+		if (child:IsA("Model") or child:IsA("BasePart") or child:IsA("Folder")) and bad(child.Name) then
+			if child:IsA("Folder") then
+				for _, inner in ipairs(child:GetChildren()) do
+					add(inner)
+				end
+			else
+				add(child)
+			end
+		end
+	end
+	local build = workspace:FindFirstChild("World")
+	build = build and build:FindFirstChild("Build")
+	if build then
+		for _, child in ipairs(build:GetChildren()) do
+			if bad(child.Name) then
+				for _, inner in ipairs(child:GetChildren()) do
+					add(inner)
+				end
+			end
+		end
+	end
+	dangerCache = list
+	return list
+end
+
+-- if the straight line crosses a danger zone, aim at the corner of it instead
+local function avoid(from, to)
+	for _, d in ipairs(dangers()) do
+		local x0, x1, z0, z1 = d.MinX - 12, d.MaxX + 12, d.MinZ - 12, d.MaxZ + 12
+		local inside = from.X >= x0 and from.X <= x1 and from.Z >= z0 and from.Z <= z1
+		if not inside then
+			local t0, t1, hit = 0, 1, true
+			for _, axis in ipairs({ { from.X, to.X - from.X, x0, x1 }, { from.Z, to.Z - from.Z, z0, z1 } }) do
+				local pos, delta, lo, hi = axis[1], axis[2], axis[3], axis[4]
+				if math.abs(delta) < 1e-6 then
+					if pos < lo or pos > hi then
+						hit = false
+					end
+				else
+					local ta, tb = (lo - pos) / delta, (hi - pos) / delta
+					if ta > tb then
+						ta, tb = tb, ta
+					end
+					t0, t1 = math.max(t0, ta), math.min(t1, tb)
+					if t0 > t1 then
+						hit = false
+					end
+				end
+			end
+			if hit then
+				local zLow, zHigh = z0 - 2, z1 + 2
+				local z = math.abs(from.Z - zLow) <= math.abs(from.Z - zHigh) and zLow or zHigh
+				if z < -440 or z > -290 then
+					z = z == zLow and zHigh or zLow
+				end
+				local x = math.abs(from.X - x0) <= math.abs(from.X - x1) and x0 or x1
+				if math.abs(from.Z - z) < 3 then
+					x = math.abs(to.X - x0) <= math.abs(to.X - x1) and x0 or x1
+				end
+				return Vector3.new(x, to.Y, z)
+			end
+		end
+	end
+	return to
+end
+
+-- the hub's "Run" way to the egg: straight on the ground at 115% of the walk speed (never faster).
+-- From the base side it first walks out to the safe-zone point, like the hub does.
+local function runToEgg(uid, egg)
+	local lineX = lineInfo()
+	local home = homePoint()
+	local character = localPlayer.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	if humanoid then
+		humanoid.PlatformStand = false
+		if character:FindFirstChildWhichIsA("Tool") then
+			pcall(function()
+				humanoid:UnequipTools()
+			end)
+		end
+	end
+
+	local r = root()
+	if not r then
+		return false
+	end
+	local stage = "field"
+	if r.Position.X < lineX - 2 and Vector3.new(r.Position.X - home.X, 0, r.Position.Z - home.Z).Magnitude > 20 then
+		stage = "safe"
+	end
+
+	local started, lastCheck, lastPos, lastTake = os.clock(), os.clock(), r.Position, 0
+	while os.clock() - started < 120 and not state.Cancel do
+		r = root()
+		if not r then
+			return false
+		end
+		local flatEgg = Vector3.new(egg.X - r.Position.X, 0, egg
